@@ -1,9 +1,14 @@
 #include "Arduino.h"
 #include <Logging.h>
 
+// Unit Settings
+const byte UNIT_ID = 1;
+
 // Comms settings
 const long SERIAL_BAUD = 115200;
-const int LOGGER_LEVEL = LOG_LEVEL_DEBUG;
+const int LOGGER_LEVEL = LOG_LEVEL_INFOS;
+
+const long XBEE_BAUD = 9600;
 
 
 // Pin assignments
@@ -29,35 +34,34 @@ const byte CURRENT_DETECT_PIN = A5;
 
 
 // Timer config
-const int CHECK_MOTION_INTERVAL = 1000;
-const int MOTION_COOLDOWN = 5000; // Time left for the PIR sensor to cool down after a detection in ms
+const int CHECK_MOTION_INTERVAL = 500;
+const int MOTION_COOLDOWN = 2000; // Time left for the PIR sensor to cool down after a detection in ms
 
 const int CHECK_FLOW_INTERVAL = 200;
 const int FLOW_COOLDOWN = 2000; // Optical flow detection cooldown in ms
 
-const int CHECK_RANGE_INTERVAL = 200;
-const int RANGE_DETECT_THRESHOLD = 50; // Minimum threshold for range detection in cm. (Target must move at least this much) 
+const int CHECK_RANGE_INTERVAL = 100;
+const int RANGE_DETECT_THRESHOLD = 70; // Minimum threshold for range detection in cm. (Target must move at least this much) 
 
-const int LIDAR_CHECK_RANGE_INTERVAL = 200;
+const int LIDAR_CHECK_RANGE_INTERVAL = 100;
 const int LIDAR_DETECT_THRESHOLD = 50;
 
-const long LOG_TIMER_INTERVAL = 5000; // Time in between SD card log entries in ms.
-const int CHECK_ENVIRONMENTAL_SENSOR_INTERVAL = 1000;
+const long PRINT_INTERVAL = 60000;
+const int CHECK_ENVIRONMENTAL_SENSOR_INTERVAL = PRINT_INTERVAL/3;
 
-const long XBEE_TRANSMIT_INTERVAL = 30000; // Time between XBee transmissions
-
-const long PRINT_INTERVAL = 5000;
+const long XBEE_TRANSMIT_INTERVAL = PRINT_INTERVAL; // Time between XBee transmissions
 
 
 // Misc
 const int YUN_BOOT_DELAY = 20000; //Time to wait for Yun to boot up before checking the handshake
 const byte COMMAND_CACHE_SIZE = 80;
 const byte SEND_BUFFER_SIZE = 50;
-const byte MIN_BASELINE_READS = 15; // Minimum number of reads needed to establish a baseline
+const byte MIN_BASELINE_READS = 20; // Minimum number of reads needed to establish a baseline
+const byte MAX_BASELINE_READS = 30;
 const int BASELINE_READ_INTERVAL = 200; // Time between range baseline calibration reads
-const int BASELINE_VARIANCE_THRESHOLD = 5; // Maximum acceptable range sensor baseline error in cm.
+const int BASELINE_VARIANCE_THRESHOLD = 20; // Maximum acceptable range sensor baseline error in cm.
 
-const int MOTION_INITIALISATION_TIME = 3000; // Time given for PIR sensor to calibrate in ms.
+const int MOTION_INITIALISATION_TIME = 10000; // Time given for PIR sensor to calibrate in ms.
 const byte MOTION_DETECTED = HIGH;
 const byte MOTION_INITIALISATION_INTERVALS = 6;
 
@@ -67,6 +71,8 @@ const float AREF_VOLTAGE = 5.0;
 const byte LIGHT_HEALTHY_THRESHOLD = 500;
 const byte SOUND_SAMPLE_TIME = 100;
 
+const byte TEMPERATURE_RESOLUTION = 12; //12-bit temperature resolution
+
 
 // Current
 const int TRANSFORMER_RATIO = 2000;	// The ratio of the current transformer
@@ -75,11 +81,29 @@ const int CURRENT_SAMPLES = 1000;	// Number of ADC samples taken when measuring 
 const float CURRENT_CALIBRATION_FACTOR = TRANSFORMER_RATIO / BURDEN_RESISTOR;
 
 
-// Commands
+// Commands & Tags
 const char COMMAND_TERMINATOR = '$';
 const char RESET_UVD_COUNT = 'q';
 const char DISABLE_UVD = 'w';
 const char ENABLE_UVD = 'e';
+const char PACKET_START = '#';
+const char PACKET_END = '$';
+const char AMBIENT_TEMPERATURE_TAG = 'A';
+const char ROAD_TEMPERATURE_TAG = 'R';
+const char CASE_TEMPERATURE_TAG = 'E';
+const char HUMIDITY_TAG = 'H';
+const char ILLUMINANCE_TAG = 'I';
+const char LAMP_STATUS_TAG = 'S';
+const char NOISE_TAG = 'N';
+const char CURRENT_DRAW_TAG = 'C';
+const char TIMESTAMP_TAG = 'T';
+const char UVD_RANGE_TAG = 'U';
+const char UVD_COUNT_TAG = 'u';
+const char MOTION_STATUS_TAG = 'M';
+const char MOTION_COUNT_TAG = 'm';
+const char LIDAR_RANGE_TAG = 'L';
+const char LIDAR_COUNT_TAG = 'l';
+const char TRAFFIC_EVENT_TAG = 't';
 
 
 // JSON string tags
@@ -97,5 +121,7 @@ const char NOISE[] = "noise";
 const char LAMP_STATUS[] = "lamp status";
 const char AIR_TEMP[] = "air_temp";
 const char ROAD_TEMP[] = "road_temp";
+const char CASE_TEMP[] = "case_temp";
 const char HUMIDITY[] = "humidity";
 const char ILLUMINANCE[] = "illuminance";
+const char EVENT_FLAG[] = "event_flag";

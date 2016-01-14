@@ -1,3 +1,7 @@
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include <XBee.h>
+#include <SoftwareSerial.h>
 #include <EmonLib.h>
 #include <RTClib.h>
 #include <Wire.h>
@@ -5,7 +9,6 @@
 #include <Adafruit_MLX90614.h>
 #include <Arduino.h>
 #include <LIDARduino.h>
-#include <ADNS3080.h>
 #include <SPI\SPI.h>
 #include <ProgmemString.h>
 #include <StraightBuffer.h>
@@ -16,19 +19,25 @@
 #include <SimpleTimer.h>
 #include <CommandHandler.h>
 
+
 #include "config.h"
 
 using namespace ArduinoJson::Generator;
 
-const int SSL_TESTBED_VERSION = 1;
+const int SSL_TESTBED_VERSION = 5;
 
 
 //////////////////////////////////////////////////////////////////////////
 // Config
 
+// XBee
+SoftwareSerial xbee_bridge(XBEE_RX, XBEE_TX);
+XBee xbee = XBee();
+
 // Traffic Sensors
 Maxbotix rangeSensor(RANGEFINDER_AN_PIN, Maxbotix::AN, Maxbotix::XL);
 int rangeBaseline;
+bool rangeConfirmed = false;
 
 LIDAR_Lite_PWM lidar(LIDAR_TRIGGER_PIN, LIDAR_PWM_PIN);
 int lidarBaselineRange;
@@ -38,6 +47,9 @@ bool motionDetected;
 // Environmental Sensors
 Adafruit_MLX90614 roadTemperatureSensor;
 BH1750FVI illuminanceSensor;
+OneWire onewire(TEMPERATURE_PIN);
+DallasTemperature airTemperatureSensor(&onewire);
+
 
 // Misc
 RTC_DS1307 rtc;
@@ -51,12 +63,14 @@ int flowTimerID = -1;
 int lidarTimerID = -1;
 int airTemperatureTimerID = -1;
 int roadTemperatureTimerID = -1;
+int caseTemperatureTimerID = -1;
 int humidityTimerID = -1;
 int illuminanceTimerID = -1;
 int lampStatusTimerID = -1;
 int noiseTimerID = -1;
 int currentTimerID = -1;
 int printTimerID = -1;
+int xbeeTimerID = -1;
 
 // Data storage
 JsonObject<20> sensorEntry;
@@ -79,9 +93,12 @@ bool linuxBusy;
 */
 void setup()
 {
-	//startYunSerial();
-	Log.Init(LOG_LEVEL_DEBUG, 115200);
+	startYunSerial();
+	//Log.Init(LOG_LEVEL, 115200);
 	Log.Info(P("Traffic Counter - ver %d"), SSL_TESTBED_VERSION);
+
+	// XBee
+	startXBee();
 
 	// Start up sensors
 	startSensors();
@@ -123,7 +140,7 @@ void startYunSerial(){
 			Serial1.read();
 		}
 		delay(5000);
-	} while (Serial1.available()>0);
+	} while (Serial1.available() > 0);
 	Serial1.end();
 
 	// Check the initial state of the handshake pin (LOW == Ready)
@@ -153,6 +170,76 @@ void _bootStatusChange(){
 
 
 //////////////////////////////////////////////////////////////////////////
+// XBee Comms
+
+void startXBee(){
+	xbee_bridge.begin(XBEE_BAUD);
+	xbee.begin(xbee_bridge);
+
+	sendBuffer.reset();
+
+	xbeeTimerID = timer.setInterval(XBEE_TRANSMIT_INTERVAL, sendXBeePacket);
+}
+
+void prepareXBeePacket(){
+	sendBuffer.reset();
+	
+	sendBuffer.write(PACKET_START);
+
+	sendBuffer.write(AMBIENT_TEMPERATURE_TAG);
+	sendBuffer.writeInt(int(float(sensorEntry[AIR_TEMP]) * 100));
+
+	sendBuffer.write(ROAD_TEMPERATURE_TAG);
+	sendBuffer.writeInt(int(float(sensorEntry[ROAD_TEMP]) * 100));
+
+	sendBuffer.write(HUMIDITY_TAG);
+	sendBuffer.writeInt(int(float(sensorEntry[HUMIDITY]) * 100));
+
+	sendBuffer.write(ILLUMINANCE_TAG);
+	sendBuffer.writeInt(int(sensorEntry[ILLUMINANCE]));
+
+	//sendBuffer.write(LAMP_STATUS_TAG);
+	//sendBuffer.write(bool(sensorEntry[LAMP_STATUS]));
+
+	sendBuffer.write(NOISE_TAG);
+	sendBuffer.writeInt(int(sensorEntry[NOISE]));
+
+	sendBuffer.write(CURRENT_DRAW_TAG);
+	sendBuffer.writeInt(int(float(sensorEntry[CURRENT_DRAW]) * 100));
+
+	sendBuffer.write(TIMESTAMP_TAG);
+	sendBuffer.writeLong(sensorEntry[TIME_STAMP]);
+
+	sendBuffer.write(UVD_RANGE_TAG);
+	sendBuffer.writeInt(sensorEntry[UVD_RANGE]);
+
+	sendBuffer.write(UVD_COUNT_TAG);
+	sendBuffer.writeInt(sensorEntry[COUNT_UVD]);
+
+	sendBuffer.write(MOTION_STATUS_TAG);
+	sendBuffer.write(bool(sensorEntry[PIR_STATUS]));
+
+	sendBuffer.write(MOTION_COUNT_TAG);
+	sendBuffer.writeInt(sensorEntry[COUNT_PIR]);
+
+	sendBuffer.write(LIDAR_RANGE_TAG);
+	sendBuffer.writeInt(sensorEntry[LIDAR_RANGE]);
+
+	sendBuffer.write(LIDAR_COUNT_TAG);
+	sendBuffer.writeInt(sensorEntry[COUNT_LIDAR]);
+}
+
+void transmitPacket(){
+	xbee_bridge.write(sendBuffer.getBufferAddress(), int(sendBuffer.getWritePosition()));
+}
+
+void sendXBeePacket(){
+	prepareXBeePacket();
+	transmitPacket();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
 // Sensors
 
 /**
@@ -171,13 +258,14 @@ void startSensors(){
 	// Environment
 	startAirTemperatureSensor();
 	startRoadTemperatureSensor();
+	startCaseTemperatureSensor();
 	startHumiditySensor();
-	startLightStatus();
+	//startLightStatus();
 	startIlluminanceSensor();
 	startMicrophone();
 	startCurrentSensor();
-	
-	printTimerID = timer.setInterval(PRINT_INTERVAL, printData);
+
+	printTimerID = timer.setInterval(PRINT_INTERVAL, printDataEntry);
 }
 
 /**
@@ -187,7 +275,7 @@ void addSerialCommands(){
 	commandHandler.setTerminator(COMMAND_TERMINATOR);
 
 	//Add commands here
-	
+
 	commandHandler.setDefaultHandler(defaultHandler);
 }
 
@@ -199,15 +287,35 @@ void defaultHandler(char c){
 }
 
 /**
+* Print a normal data entry
+* The traffic event flag is 'off'
+*/
+void printDataEntry(){
+	sensorEntry[EVENT_FLAG] = false;
+	printData();
+}
+
+/**
+* Print a data entry
+* The traffic event flag is enabled
+*/
+void printTrafficEntry(){
+	sensorEntry[EVENT_FLAG] = true;
+	printData();
+
+	sendXBeePacket();
+}
+
+/**
 * Print the current traffic counts and info to Serial
 */
 void printData(){
 	readDateTime();
 
 	if (!linuxBusy){
-		Serial.print("#");
-		sensorEntry.printTo(Serial);
-		Serial.println("$");
+		Serial1.print("#");
+		sensorEntry.printTo(Serial1);
+		Serial1.println("$");
 	}
 }
 
@@ -238,11 +346,12 @@ void startRangefinder(){
 	rangeBaseline = getRangefinderBaseline(BASELINE_VARIANCE_THRESHOLD);
 
 	Log.Debug(P("Ultrasonic Baseline established: %d cm, %d cm variance"), rangeBaseline, BASELINE_VARIANCE_THRESHOLD);
-	sensorEntry[UVD_RANGE] = rangeBaseline;
-
-	rangeTimerID = timer.setInterval(CHECK_RANGE_INTERVAL, checkRange);
-	sensorEntry[COUNT_UVD] = 0;
-	sensorEntry[UVD_RANGE] = 0;
+	
+	if (rangeBaseline > RANGE_DETECT_THRESHOLD) {
+		rangeTimerID = timer.setInterval(CHECK_RANGE_INTERVAL, checkRange);
+		sensorEntry[COUNT_UVD] = 0;
+		sensorEntry[UVD_RANGE] = 0;
+	}
 }
 
 /**
@@ -256,7 +365,7 @@ int getRangefinderBaseline(int variance){
 	int averageVariance = 500;
 
 	// Keep reading in the baseline until it stablises
-	while (baselineReads < MIN_BASELINE_READS || averageVariance > variance){
+	while ((baselineReads < MIN_BASELINE_READS || averageVariance > variance) && baselineReads < MAX_BASELINE_READS){
 		int newRange = getRange();
 		int newVariance = (averageRange - newRange);
 		if (newVariance < 0){ newVariance *= -1; }
@@ -268,6 +377,10 @@ int getRangefinderBaseline(int variance){
 
 		baselineReads++;
 		delay(BASELINE_READ_INTERVAL);
+	}
+
+	if (averageVariance > variance) {
+		averageRange = -1;
 	}
 
 	return averageRange;
@@ -292,24 +405,36 @@ int getRange(){
 * to register a shorter range than usual.
 */
 void checkRange(){
-	int lastRange = sensorEntry[UVD_RANGE];
+	static int lastRange = sensorEntry[UVD_RANGE];
 	int newRange = getRange();
-
-	sensorEntry[UVD_RANGE] = newRange;
 
 	// Detection occurs when target breaks the LoS to the baseline
 	if ((rangeBaseline - newRange) > RANGE_DETECT_THRESHOLD && (lastRange - newRange) > RANGE_DETECT_THRESHOLD){
 
-		// Increase traffic count
-		int trafficCount = sensorEntry[COUNT_UVD];
-		trafficCount++;
-		sensorEntry[COUNT_UVD] = trafficCount;
+		// Two detections needed in a row to filter out sonar errors
+		if (rangeConfirmed){
+			rangeConfirmed = false;
 
-		Log.Info(P("Traffic count - UVD: %d counts"), trafficCount);
+			// Increase traffic count
+			sensorEntry[UVD_RANGE] = newRange;
+			int trafficCount = sensorEntry[COUNT_UVD];
+			trafficCount++;
+			sensorEntry[COUNT_UVD] = trafficCount;
+			Log.Info(P("Traffic count - UVD: %d counts"), trafficCount);
 
-		// Also send an XBee alert
-		printData();
+			// Also send an XBee alert
+			printTrafficEntry();
+		}
+
+		else{
+			rangeConfirmed = true;
+		}
+		
 	}
+	else{
+		sensorEntry[UVD_RANGE] = newRange;
+		rangeConfirmed = false;
+	}	
 }
 
 /**
@@ -341,9 +466,11 @@ void startLidar(){
 	lidarBaselineRange = getLidarBaselineRange(BASELINE_VARIANCE_THRESHOLD);
 	Log.Debug(P("Lidar Baseline established: %d cm, %d cm variance"), lidarBaselineRange, BASELINE_VARIANCE_THRESHOLD);
 
-	lidarTimerID = timer.setInterval(LIDAR_CHECK_RANGE_INTERVAL, checkLidarRange);
-	sensorEntry[COUNT_LIDAR] = 0;
-	sensorEntry[LIDAR_RANGE] = 0;
+	if (lidarBaselineRange > LIDAR_DETECT_THRESHOLD) {
+		lidarTimerID = timer.setInterval(LIDAR_CHECK_RANGE_INTERVAL, checkLidarRange);
+		sensorEntry[COUNT_LIDAR] = 0;
+		sensorEntry[LIDAR_RANGE] = 0;
+	}
 }
 
 /**
@@ -357,7 +484,7 @@ int getLidarBaselineRange(int variance){
 	int averageVariance = 500;
 
 	// Keep reading in the baseline until it stablises
-	while (baselineReads < MIN_BASELINE_READS || averageVariance > variance){
+	while ((baselineReads < MIN_BASELINE_READS || averageVariance > variance) && baselineReads < MAX_BASELINE_READS){
 		int newRange = getLidarRange();
 		int newVariance = (averageRange - newRange);
 		if (newVariance < 0){ newVariance *= -1; }
@@ -369,6 +496,11 @@ int getLidarBaselineRange(int variance){
 
 		baselineReads++;
 		delay(BASELINE_READ_INTERVAL);
+	}
+
+	// Calibration fails if the range is varying too much
+	if (averageVariance > variance) {
+		averageRange = -1;
 	}
 
 	return averageRange;
@@ -408,7 +540,7 @@ void checkLidarRange(){
 
 		Log.Info(P("Traffic count - Lidar: %d counts"), trafficCount);
 
-		printData();
+		printTrafficEntry();
 	}
 }
 
@@ -417,7 +549,7 @@ void checkLidarRange(){
 */
 void resetLidarCount(){
 	sensorEntry[COUNT_LIDAR] = 0;
-} 
+}
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -432,7 +564,7 @@ void startMotionDetector(){
 	Log.Info(P("Calibrating motion sensor - wait %d ms"), MOTION_INITIALISATION_TIME);
 
 
-	for (long i = 0; i < MOTION_INITIALISATION_TIME; i+= (MOTION_INITIALISATION_TIME/MOTION_INITIALISATION_INTERVALS)){
+	for (long i = 0; i < MOTION_INITIALISATION_TIME; i += (MOTION_INITIALISATION_TIME / MOTION_INITIALISATION_INTERVALS)){
 		Log.Debug(P("Motion sensor calibration: %d ms remaining..."), (MOTION_INITIALISATION_TIME - i));
 		Serial.flush();
 		delay(MOTION_INITIALISATION_TIME / MOTION_INITIALISATION_INTERVALS);
@@ -441,7 +573,7 @@ void startMotionDetector(){
 	motionDetected = false;
 
 	motionTimerID = timer.setInterval(CHECK_MOTION_INTERVAL, checkPirMotion);
-	Log.Debug(P("Motion started"));
+	Log.Info(P("Motion started"));
 	sensorEntry[COUNT_PIR] = 0;
 	sensorEntry[PIR_STATUS] = 0;
 }
@@ -451,9 +583,9 @@ void startMotionDetector(){
 */
 void stopMotionDetector(){
 	timer.deleteTimer(motionTimerID);
-	
 
-	Log.Debug(P("Motion sensor stopped"));
+
+	Log.Info(P("Motion sensor stopped"));
 }
 
 /**
@@ -479,7 +611,7 @@ void checkPirMotion(){
 
 		Log.Info(P("Traffic count - PIR: %l counts"), motionCount);
 
-		printData();
+		printTrafficEntry();
 
 		// Enter the cooldown phase
 		motionCoolDown();
@@ -525,7 +657,13 @@ void resetMotionCount(){
 * Start the air temperature sensor
 */
 void startAirTemperatureSensor(){
+	// TMP36
 	pinMode(TEMPERATURE_PIN, INPUT);
+	
+	// Uncomment in case of DS18B20
+	// airTemperatureSensor.begin();
+	// airTemperatureSensor.setResolution(TEMPERATURE_RESOLUTION);
+
 	airTemperatureTimerID = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, readAirTemperature);
 }
 
@@ -533,12 +671,16 @@ void startAirTemperatureSensor(){
 * Read the air temperature sensor
 */
 float getAirTemperature(){
-	int raw_temp = analogRead(TEMPERATURE_PIN);
+	float air_temp;
 
-	float temp_voltage = raw_temp * AREF_VOLTAGE;
-	temp_voltage /= 1024.0;
+	// TMP36
+	float temp_voltage = (analogRead(TEMPERATURE_PIN) * AREF_VOLTAGE) /1024;
+	air_temp = (temp_voltage - 0.5) * 100;
 
-	float air_temp = (temp_voltage - 0.5) * 100;
+	// DS18B20
+	// airTemperatureSensor.requestTemperatures();
+	// air_temp = airTemperatureSensor.getTempCByIndex(0);
+
 	return air_temp;
 }
 
@@ -558,7 +700,7 @@ void readAirTemperature(){
 */
 void startRoadTemperatureSensor(){
 	roadTemperatureSensor.begin();
-	roadTemperatureTimerID = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, readAirTemperature);
+	roadTemperatureTimerID = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, readRoadTemperature);
 }
 
 /**
@@ -573,6 +715,32 @@ float getRoadTemperature(){
 */
 void readRoadTemperature(){
 	sensorEntry[ROAD_TEMP] = getRoadTemperature();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// Case Temperature
+
+/**
+* Start the road temperature sensor
+*/
+void startCaseTemperatureSensor(){
+	roadTemperatureSensor.begin();
+	caseTemperatureTimerID = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, readCaseTemperature);
+}
+
+/**
+* Read the road temperature from the non-contact thermometer
+*/
+float getCaseTemperature(){
+	return roadTemperatureSensor.readAmbientTempC();
+}
+
+/**
+* Read the road temperature into the entry
+*/
+void readCaseTemperature(){
+	sensorEntry[CASE_TEMP] = getCaseTemperature();
 }
 
 
@@ -613,7 +781,7 @@ void readHumidity(){
 // Illuminance
 
 /**
-* Start the BH1750FVI illuminance sensor 
+* Start the BH1750FVI illuminance sensor
 */
 void startIlluminanceSensor(){
 	illuminanceSensor.begin();
@@ -625,7 +793,7 @@ void startIlluminanceSensor(){
 
 /**
 * Read the illuminance from the sensor
-* 
+*
 * @return: illuminance value in lux
 */
 int getIlluminance(){
@@ -654,7 +822,7 @@ void startLightStatus(){
 
 /**
 * Get the status of the lamp status sensor
-* 
+*
 * @returns: True if the lamp is on
 */
 bool getLightStatus(){

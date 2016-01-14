@@ -18,7 +18,7 @@
     <None Include="SSLTestbed.ino" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Visual Micro\.SSLTestbed.vsarduino.h">
+    <ClInclude Include="__vm\.SSLTestbed.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="config.h">

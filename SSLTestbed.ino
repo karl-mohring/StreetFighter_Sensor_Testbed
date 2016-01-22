@@ -24,7 +24,7 @@
 
 using namespace ArduinoJson::Generator;
 
-const int SSL_TESTBED_VERSION = 5;
+const int SSL_TESTBED_VERSION = 6;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -93,8 +93,12 @@ bool linuxBusy;
 */
 void setup()
 {
-	startYunSerial();
-	//Log.Init(LOG_LEVEL, 115200);
+	if (DEBUG_ENABLED){
+		Log.Init(LOG_LEVEL_DEBUG, 115200);
+	}
+	else{
+		startYunSerial();
+	}
 	Log.Info(P("Traffic Counter - ver %d"), SSL_TESTBED_VERSION);
 
 	// XBee
@@ -183,7 +187,7 @@ void startXBee(){
 
 void prepareXBeePacket(){
 	sendBuffer.reset();
-	
+
 	sendBuffer.write(PACKET_START);
 
 	sendBuffer.write(AMBIENT_TEMPERATURE_TAG);
@@ -246,7 +250,7 @@ void sendXBeePacket(){
 * Enable and configure the sensor suite for reading
 */
 void startSensors(){
-	sensorEntry[ID] = "trafficCount";
+	sensorEntry[ID] = UNIT_NAME;
 	sensorEntry[VERSION] = SSL_TESTBED_VERSION;
 	startRTC();
 
@@ -263,7 +267,7 @@ void startSensors(){
 	//startLightStatus();
 	startIlluminanceSensor();
 	startMicrophone();
-	startCurrentSensor();
+	//startCurrentSensor();
 
 	printTimerID = timer.setInterval(PRINT_INTERVAL, printDataEntry);
 }
@@ -312,10 +316,18 @@ void printTrafficEntry(){
 void printData(){
 	readDateTime();
 
-	if (!linuxBusy){
-		Serial1.print("#");
-		sensorEntry.printTo(Serial1);
-		Serial1.println("$");
+	if (DEBUG_ENABLED){
+		sensorEntry.printTo(Serial);
+
+	}
+
+	else{
+		if (!linuxBusy){
+			Serial1.print("#");
+			sensorEntry.printTo(Serial1);
+			Serial1.println("$");
+		}
+
 	}
 }
 
@@ -346,7 +358,7 @@ void startRangefinder(){
 	rangeBaseline = getRangefinderBaseline(BASELINE_VARIANCE_THRESHOLD);
 
 	Log.Debug(P("Ultrasonic Baseline established: %d cm, %d cm variance"), rangeBaseline, BASELINE_VARIANCE_THRESHOLD);
-	
+
 	if (rangeBaseline > RANGE_DETECT_THRESHOLD) {
 		rangeTimerID = timer.setInterval(CHECK_RANGE_INTERVAL, checkRange);
 		sensorEntry[COUNT_UVD] = 0;
@@ -429,12 +441,12 @@ void checkRange(){
 		else{
 			rangeConfirmed = true;
 		}
-		
+
 	}
 	else{
 		sensorEntry[UVD_RANGE] = newRange;
 		rangeConfirmed = false;
-	}	
+	}
 }
 
 /**
@@ -659,7 +671,7 @@ void resetMotionCount(){
 void startAirTemperatureSensor(){
 	// TMP36
 	pinMode(TEMPERATURE_PIN, INPUT);
-	
+
 	// Uncomment in case of DS18B20
 	// airTemperatureSensor.begin();
 	// airTemperatureSensor.setResolution(TEMPERATURE_RESOLUTION);
@@ -674,7 +686,7 @@ float getAirTemperature(){
 	float air_temp;
 
 	// TMP36
-	float temp_voltage = (analogRead(TEMPERATURE_PIN) * AREF_VOLTAGE) /1024;
+	float temp_voltage = (analogRead(TEMPERATURE_PIN) * AREF_VOLTAGE) / 1024;
 	air_temp = (temp_voltage - 0.5) * 100;
 
 	// DS18B20

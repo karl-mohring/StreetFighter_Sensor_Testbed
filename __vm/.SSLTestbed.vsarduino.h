@@ -13,11 +13,12 @@
 #define __AVR_ATmega32u4__
 #define __AVR_ATmega32U4__
 #define F_CPU 16000000L
-#define ARDUINO 166
+#define ARDUINO 160
 #define ARDUINO_AVR_YUN
 #define ARDUINO_ARCH_AVR
 #define USB_VID 0x2341
 #define USB_PID 0x8041
+#define USB_MANUFACTURER 
 #define __cplusplus
 #define __AVR__
 #define __inline__

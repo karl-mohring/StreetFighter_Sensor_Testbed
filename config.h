@@ -3,6 +3,9 @@
 
 // Unit Settings
 const byte UNIT_ID = 1;
+const char UNIT_NAME[] = "Flauros";
+
+const bool DEBUG_ENABLED = false;
 
 // Comms settings
 const long SERIAL_BAUD = 115200;
@@ -34,8 +37,8 @@ const byte CURRENT_DETECT_PIN = A5;
 
 
 // Timer config
-const int CHECK_MOTION_INTERVAL = 500;
 const int MOTION_COOLDOWN = 2000; // Time left for the PIR sensor to cool down after a detection in ms
+const int CHECK_MOTION_INTERVAL = MOTION_COOLDOWN/8;
 
 const int CHECK_FLOW_INTERVAL = 200;
 const int FLOW_COOLDOWN = 2000; // Optical flow detection cooldown in ms

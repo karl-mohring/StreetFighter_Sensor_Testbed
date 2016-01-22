@@ -8,7 +8,7 @@ const char UNIT_NAME[] = "Flauros";
 const bool DEBUG_ENABLED = false;
 
 // Comms settings
-const long SERIAL_BAUD = 115200;
+const long SERIAL_BAUD = 57600;
 const int LOGGER_LEVEL = LOG_LEVEL_INFOS;
 
 const long XBEE_BAUD = 9600;

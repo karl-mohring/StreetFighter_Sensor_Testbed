@@ -24,7 +24,7 @@
 
 using namespace ArduinoJson::Generator;
 
-const int SSL_TESTBED_VERSION = 6;
+const int SSL_TESTBED_VERSION = 7;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -54,6 +54,7 @@ DallasTemperature airTemperatureSensor(&onewire);
 // Misc
 RTC_DS1307 rtc;
 EnergyMonitor currentMonitor;
+bool lampControlEnabled = false;
 
 // Timers
 SimpleTimer timer;
@@ -71,6 +72,8 @@ int noiseTimerID = -1;
 int currentTimerID = -1;
 int printTimerID = -1;
 int xbeeTimerID = -1;
+int lampTimerID = -1;
+int lampTransitionTimer = -1;
 
 // Data storage
 JsonObject<20> sensorEntry;
@@ -100,6 +103,8 @@ void setup()
 		startYunSerial();
 	}
 	Log.Info(P("Traffic Counter - ver %d"), SSL_TESTBED_VERSION);
+
+	//startLampControl();
 
 	// XBee
 	startXBee();
@@ -161,7 +166,6 @@ void startYunSerial(){
 */
 void _bootStatusChange(){
 	linuxBusy = digitalRead(YUN_HANDSHAKE_PIN);
-	digitalWrite(LED_BUILTIN, linuxBusy);
 
 	// Disable log output until Linux boots
 	if (linuxBusy){
@@ -304,6 +308,12 @@ void printDataEntry(){
 * The traffic event flag is enabled
 */
 void printTrafficEntry(){
+
+	// Activate the lamp (if enabled)
+	if (lampControlEnabled){
+		activateLamp();
+	}
+
 	sensorEntry[EVENT_FLAG] = true;
 	printData();
 
@@ -950,3 +960,105 @@ long getDateTime(){
 void readDateTime(){
 	sensorEntry[TIME_STAMP] = getDateTime();
 }
+
+
+//////////////////////////////////////////////////////////////////////////
+// Dimming Control
+
+/**
+* Start the lamp 
+*/
+void startLampControl(){
+	//Start lamp in active mode
+	activateLamp();
+	lampControlEnabled = true;
+};
+
+/**
+* Switch the lamp to the active state
+* The lamp will go back to the inactive state after the cooldown has elapsed.
+* Successive activation reset the cooldown timer.
+*/
+void activateLamp(){
+	setLampTarget(ACTIVE_BRIGHTNESS);
+
+	// Start the lamp cooldown timer; reset if lamp is already active
+	if (lampTimerID < 0){
+		lampTimerID = timer.setTimeout(LAMP_ACTIVE_TIME, deactivateLamp);
+	}
+	else{
+		timer.restartTimer(lampTimerID);
+	}
+}
+
+/**
+* Set the lamp to the inactive state
+*/
+void deactivateLamp(){
+	setLampTarget(INACTIVE_BRIGHTNESS);
+
+	// Trash the timer
+	timer.deleteTimer(lampTimerID);
+}
+
+/**
+* Set the brightness target for the lamp (in percentage; not binary level)
+* Lamp brightness changes with a transition; changes are not instantaneous
+*
+* @level: brighteness as a percentage of the maximum output
+*
+*/
+void setLampTarget(int level){
+	// Make sure the level is in the percentage range
+	level = constrain(level, 0, 100);
+	level = map(level, 0, 100, 255, 0);
+
+	sensorEntry[LAMP_TARGET] = level;
+	transitionLamp();
+}
+
+/**
+* Write the lamp level; instantaneous change
+* @level: Lamp level in binary (0-255; 255 == maximum)
+*/
+void writeLampLevel(int level){
+	constrain(level, 0, 255);
+
+	analogWrite(LAMP_CONTROL_PIN, level);
+	sensorEntry[LAMP_OUTPUT] = level;
+}
+
+/**
+* Step the lamp output towards the target output.
+* Time between transition steps and step size changes with direction.
+* e.g. Transitions from low to high can be set fast (high step size; low transition period)
+* Where transitions from high to low can be slower and softer (low step size w/ long period between steps)
+*/
+void transitionLamp(){
+	byte target = int(sensorEntry[LAMP_TARGET]);
+	byte output = int(sensorEntry[LAMP_OUTPUT]);
+	byte new_output;
+	long transitionTime;
+
+	// If the output is already close to the target, instantly change the output to match
+	if ((target >= output && (target - output) <= LAMP_TRANSITION_STEP_UP) || (target >= output && (output - target) <= LAMP_TRANSITION_STEP_DOWN)){
+			writeLampLevel(target);
+	}
+
+	// Else, a transition is needed; find out what the new output and period needs to be
+	else{
+		if (target > output){
+			new_output = output + LAMP_TRANSITION_STEP_UP;
+			transitionTime = LAMP_TRANSITION_UP_PERIOD;
+		}
+		else{
+			new_output = output - LAMP_TRANSITION_STEP_DOWN;
+			transitionTime = LAMP_TRANSISTION_DOWN_PERIOD;
+		}
+
+		// Apply next transition output and reschedule a transition (period depending on direction)
+		writeLampLevel(new_output);
+		lampTransitionTimer = timer.setTimeout(transitionTime, transitionLamp);
+	}
+}
+

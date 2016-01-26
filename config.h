@@ -128,3 +128,15 @@ const char CASE_TEMP[] = "case_temp";
 const char HUMIDITY[] = "humidity";
 const char ILLUMINANCE[] = "illuminance";
 const char EVENT_FLAG[] = "event_flag";
+const char LAMP_TARGET[] = "lamp_target";
+const char LAMP_OUTPUT[] = "lamp_output";
+
+// Lamp Dimming
+const byte ACTIVE_BRIGHTNESS = 100;
+const byte INACTIVE_BRIGHTNESS = 20;
+const int LAMP_ACTIVE_MINUTES = 5;
+const long LAMP_ACTIVE_TIME = LAMP_ACTIVE_MINUTES * 60 * 1000;
+const int LAMP_TRANSITION_UP_PERIOD = 2; // Time between transition steps when going from low to high brightness
+const int LAMP_TRANSISTION_DOWN_PERIOD = 20; // Time between transition steps when going from high to low brightness
+const int LAMP_TRANSITION_STEP_UP = 1; //Transition step in %
+const int LAMP_TRANSITION_STEP_DOWN = LAMP_TRANSITION_STEP_UP;

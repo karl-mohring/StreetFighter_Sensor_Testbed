@@ -45,9 +45,9 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>c:\Program Files (x86)\arduino\hardware\arduino\avr\cores\arduino;c:\Program Files (x86)\arduino\hardware\arduino\avr\variants\yun;E:\Dropbox\Projects\SSLTestbed;e:\Dropbox\Projects\libraries\BH1750FVI;e:\Dropbox\Projects\libraries\BH1750FVI\utility;e:\Dropbox\Projects\libraries\CommandHandler;e:\Dropbox\Projects\libraries\CommandHandler\utility;e:\Dropbox\Projects\libraries\DallasTemperature;e:\Dropbox\Projects\libraries\DallasTemperature\utility;e:\Dropbox\Projects\libraries\EmonLib;e:\Dropbox\Projects\libraries\EmonLib\utility;e:\Dropbox\Projects\libraries\JSON;e:\Dropbox\Projects\libraries\JSON\utility;e:\Dropbox\Projects\libraries\LIDARduino;e:\Dropbox\Projects\libraries\LIDARduino\utility;e:\Dropbox\Projects\libraries\Logging;e:\Dropbox\Projects\libraries\Logging\utility;e:\Dropbox\Projects\libraries\Maxbotix;e:\Dropbox\Projects\libraries\Maxbotix\utility;e:\Dropbox\Projects\libraries\MLX90614;e:\Dropbox\Projects\libraries\MLX90614\utility;e:\Dropbox\Projects\libraries\OneWire;e:\Dropbox\Projects\libraries\OneWire\utility;e:\Dropbox\Projects\libraries\ProgmemString;e:\Dropbox\Projects\libraries\ProgmemString\utility;e:\Dropbox\Projects\libraries\RTClib;e:\Dropbox\Projects\libraries\RTClib\utility;e:\Dropbox\Projects\libraries\SimpleTimer;e:\Dropbox\Projects\libraries\SimpleTimer\utility;c:\Program Files (x86)\arduino\hardware\arduino\avr\libraries\SoftwareSerial;c:\Program Files (x86)\arduino\hardware\arduino\avr\libraries\SoftwareSerial\utility;c:\Program Files (x86)\arduino\hardware\arduino\avr\libraries\SPI;c:\Program Files (x86)\arduino\hardware\arduino\avr\libraries\SPI\utility;e:\Dropbox\Projects\libraries\StraightBuffer;e:\Dropbox\Projects\libraries\StraightBuffer\utility;c:\Program Files (x86)\arduino\hardware\arduino\avr\libraries\Wire;c:\Program Files (x86)\arduino\hardware\arduino\avr\libraries\Wire\utility;e:\Dropbox\Projects\libraries\XBee;e:\Dropbox\Projects\libraries\XBee\utility;c:\Program Files (x86)\arduino\libraries;c:\Program Files (x86)\arduino\hardware\arduino\avr\libraries;C:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\IDE\Extensions\tjvxld5w.a1h\Micro Platforms\default\debuggers;e:\Dropbox\Projects\libraries;{runtime.tools.avr-gcc.path}/avr/include/;{runtime.tools.avr-gcc.path}//avr/include/avr/;{runtime.tools.avr-gcc.path}/lib\gcc\avr\4.8.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <ForcedIncludeFiles>E:\Dropbox\Projects\SSLTestbed\__vm\.SSLTestbed.vsarduino.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <ForcedIncludeFiles>E:\Dropbox\Projects\SSLTestbed\Visual Micro\.SSLTestbed.vsarduino.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <IgnoreStandardIncludePath>true</IgnoreStandardIncludePath>
-      <PreprocessorDefinitions>__AVR_ATmega32u4__;__AVR_ATmega32U4__;F_CPU=16000000L;ARDUINO=160;ARDUINO_AVR_YUN;ARDUINO_ARCH_AVR;USB_VID=0x2341;USB_PID=0x8041;USB_MANUFACTURER=;__cplusplus;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__AVR_ATmega32u4__;__AVR_ATmega32U4__;F_CPU=16000000L;ARDUINO=161;ARDUINO_AVR_YUN;ARDUINO_ARCH_AVR;USB_VID=0x2341;USB_PID=0x8041;__cplusplus;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -68,10 +68,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="SSLTestbed.ino" />
+    <None Include="SSLTestbed.ino">
+      <FileType>CppCode</FileType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h" />
+    <ClInclude Include="Visual Micro\.SSLTestbed.vsarduino.h" />
     <ClInclude Include="__vm\.SSLTestbed.vsarduino.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

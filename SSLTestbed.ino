@@ -37,10 +37,11 @@ XBee xbee = XBee();
 // Traffic Sensors
 Maxbotix rangeSensor(RANGEFINDER_AN_PIN, Maxbotix::AN, Maxbotix::XL);
 int rangeBaseline;
-bool rangeConfirmed = false;
+static int successiveSonarDetections = 0;
 
 LIDAR_Lite_PWM lidar(LIDAR_TRIGGER_PIN, LIDAR_PWM_PIN);
 int lidarBaselineRange;
+static int successiveLidarDetections = 0;
 
 bool motionDetected;
 
@@ -136,7 +137,7 @@ void startYunSerial(){
 	// Set up the handshake pin
 	pinMode(YUN_HANDSHAKE_PIN, INPUT_PULLUP);
 	pinMode(LED_BUILTIN, OUTPUT);
-	digitalWrite(LED_BUILTIN, HIGH);
+	digitalWrite(LED_BUILTIN, LOW);
 
 	// Give a delay for the AR9331 to reset, in case we were reset as part of a reboot command.
 	// See http://playground.arduino.cc/Hardware/Yun#rebootStability, case 3.
@@ -369,10 +370,11 @@ void startRangefinder(){
 
 	Log.Debug(P("Ultrasonic Baseline established: %d cm, %d cm variance"), rangeBaseline, BASELINE_VARIANCE_THRESHOLD);
 
+	// Enable the sensor if it passes the baseline check
 	if (rangeBaseline > RANGE_DETECT_THRESHOLD) {
 		rangeTimerID = timer.setInterval(CHECK_RANGE_INTERVAL, checkRange);
 		sensorEntry[COUNT_UVD] = 0;
-		sensorEntry[UVD_RANGE] = 0;
+		sensorEntry[UVD_RANGE] = rangeBaseline;
 	}
 }
 
@@ -427,18 +429,17 @@ int getRange(){
 * to register a shorter range than usual.
 */
 void checkRange(){
-	static int lastRange = sensorEntry[UVD_RANGE];
 	int newRange = getRange();
+	sensorEntry[UVD_RANGE] = newRange;
 
 	// Detection occurs when target breaks the LoS to the baseline
-	if ((rangeBaseline - newRange) > RANGE_DETECT_THRESHOLD && (lastRange - newRange) > RANGE_DETECT_THRESHOLD){
+	if ((rangeBaseline - newRange) > RANGE_DETECT_THRESHOLD){
 
-		// Two detections needed in a row to filter out sonar errors
-		if (rangeConfirmed){
-			rangeConfirmed = false;
+		// If two in a row
+		if (successiveSonarDetections == MIN_SUCCESSIVE_SONAR_READS){
+			successiveSonarDetections += 1;
 
 			// Increase traffic count
-			sensorEntry[UVD_RANGE] = newRange;
 			int trafficCount = sensorEntry[COUNT_UVD];
 			trafficCount++;
 			sensorEntry[COUNT_UVD] = trafficCount;
@@ -448,14 +449,13 @@ void checkRange(){
 			printTrafficEntry();
 		}
 
-		else{
-			rangeConfirmed = true;
+		else if (successiveSonarDetections < MIN_SUCCESSIVE_SONAR_READS){
+			successiveSonarDetections += 1;
 		}
-
 	}
+
 	else{
-		sensorEntry[UVD_RANGE] = newRange;
-		rangeConfirmed = false;
+		successiveSonarDetections = 0;
 	}
 }
 
@@ -547,22 +547,33 @@ int getLidarRange(){
 * to register a shorter range than usual.
 */
 void checkLidarRange(){
-	int lastRange = sensorEntry[LIDAR_RANGE];
 	int newRange = getLidarRange();
-
 	sensorEntry[LIDAR_RANGE] = newRange;
 
 	// Detection occurs when target breaks the LoS to the baseline
-	if ((lidarBaselineRange - newRange) > RANGE_DETECT_THRESHOLD && (lastRange - newRange) > RANGE_DETECT_THRESHOLD){
+	if ((lidarBaselineRange - newRange) > RANGE_DETECT_THRESHOLD){
 
-		// Increase traffic count
-		int trafficCount = sensorEntry[COUNT_LIDAR];
-		trafficCount++;
-		sensorEntry[COUNT_LIDAR] = trafficCount;
+		// If x in a row
+		if (successiveLidarDetections == MIN_SUCCESSIVE_LIDAR_READS){
+			successiveLidarDetections += 1;
 
-		Log.Info(P("Traffic count - Lidar: %d counts"), trafficCount);
+			// Increase traffic count
+			int trafficCount = sensorEntry[COUNT_LIDAR];
+			trafficCount++;
+			sensorEntry[COUNT_LIDAR] = trafficCount;
+			Log.Info(P("Traffic count - Lidar: %d counts"), trafficCount);
 
-		printTrafficEntry();
+			// Also send an XBee alert
+			printTrafficEntry();
+		}
+
+		else if (successiveLidarDetections < MIN_SUCCESSIVE_LIDAR_READS){
+			successiveLidarDetections += 1;
+		}
+	}
+
+	else{
+		successiveLidarDetections = 0;
 	}
 }
 
@@ -624,7 +635,7 @@ void checkPirMotion(){
 	if (digitalRead(PIR_MOTION_PIN) == MOTION_DETECTED){
 
 		motionDetected = true;
-		Log.Info(P("Motion detected"));
+		Log.Debug(P("Motion detected"));
 
 		// Increment PIR count
 		long motionCount = sensorEntry[COUNT_PIR];
@@ -679,12 +690,13 @@ void resetMotionCount(){
 * Start the air temperature sensor
 */
 void startAirTemperatureSensor(){
+
 	// TMP36
 	pinMode(TEMPERATURE_PIN, INPUT);
 
 	// Uncomment in case of DS18B20
-	// airTemperatureSensor.begin();
-	// airTemperatureSensor.setResolution(TEMPERATURE_RESOLUTION);
+	/*airTemperatureSensor.begin();
+	airTemperatureSensor.setResolution(TEMPERATURE_RESOLUTION);*/
 
 	airTemperatureTimerID = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, readAirTemperature);
 }
@@ -700,8 +712,8 @@ float getAirTemperature(){
 	air_temp = (temp_voltage - 0.5) * 100;
 
 	// DS18B20
-	// airTemperatureSensor.requestTemperatures();
-	// air_temp = airTemperatureSensor.getTempCByIndex(0);
+	/*airTemperatureSensor.requestTemperatures();
+	air_temp = airTemperatureSensor.getTempCByIndex(0);*/
 
 	return air_temp;
 }
@@ -966,7 +978,7 @@ void readDateTime(){
 // Dimming Control
 
 /**
-* Start the lamp 
+* Start the lamp
 */
 void startLampControl(){
 	//Start lamp in active mode
@@ -1042,7 +1054,7 @@ void transitionLamp(){
 
 	// If the output is already close to the target, instantly change the output to match
 	if ((target >= output && (target - output) <= LAMP_TRANSITION_STEP_UP) || (target >= output && (output - target) <= LAMP_TRANSITION_STEP_DOWN)){
-			writeLampLevel(target);
+		writeLampLevel(target);
 	}
 
 	// Else, a transition is needed; find out what the new output and period needs to be

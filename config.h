@@ -57,12 +57,16 @@ const long XBEE_TRANSMIT_INTERVAL = PRINT_INTERVAL; // Time between XBee transmi
 
 // Misc
 const int YUN_BOOT_DELAY = 20000; //Time to wait for Yun to boot up before checking the handshake
+
 const byte COMMAND_CACHE_SIZE = 80;
 const byte SEND_BUFFER_SIZE = 50;
 const byte MIN_BASELINE_READS = 20; // Minimum number of reads needed to establish a baseline
 const byte MAX_BASELINE_READS = 30;
 const int BASELINE_READ_INTERVAL = 200; // Time between range baseline calibration reads
 const int BASELINE_VARIANCE_THRESHOLD = 20; // Maximum acceptable range sensor baseline error in cm.
+
+const byte MIN_SUCCESSIVE_SONAR_READS = 1;
+const byte MIN_SUCCESSIVE_LIDAR_READS = 0;
 
 const int MOTION_INITIALISATION_TIME = 10000; // Time given for PIR sensor to calibrate in ms.
 const byte MOTION_DETECTED = HIGH;

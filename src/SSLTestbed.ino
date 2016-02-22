@@ -31,8 +31,8 @@ static int successive_lidar_detections = 0;
 // Environmental Sensors
 Adafruit_MLX90614 road_temperature_sensor;
 BH1750FVI illuminance_sensor;
-//OneWire onewire(TEMPERATURE_PIN);
-//DallasTemperature air_temperature_sensor(&onewire);
+OneWire onewire(TEMPERATURE_PIN);
+DallasTemperature air_temperature_sensor(&onewire);
 
 // Misc
 RTC_DS1307 rtc;
@@ -552,13 +552,13 @@ void start_air_temperature(){
 	* Start the air temperature sensor
 	*/
 
-	// TMP36
-	pinMode(TEMPERATURE_PIN, INPUT);
-
-	// Uncomment in case of DS18B20
-	/*air_temperature_sensor.begin();
-	air_temperature_sensor.setResolution(TEMPERATURE_RESOLUTION);*/
-
+	if (TEMPERATURE_SENSOR == TMP36){
+		pinMode(TEMPERATURE_PIN, INPUT);
+	}
+	else{ // DS18B20
+		air_temperature_sensor.begin();
+		air_temperature_sensor.setResolution(TEMPERATURE_RESOLUTION);
+	}
 	air_temperature_timer = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_air_temperature);
 }
 
@@ -578,13 +578,14 @@ float get_air_temperature(){
 	*/
 	float air_temp;
 
-	// TMP36
-	float temp_voltage = (analogRead(TEMPERATURE_PIN) * AREF_VOLTAGE) / 1024;
-	air_temp = (temp_voltage - 0.5) * 100;
-
-	// DS18B20
-	/*air_temperature_sensor.requestTemperatures();
-	air_temp = air_temperature_sensor.getTempCByIndex(0);*/
+	if (TEMPERATURE_SENSOR == TMP36){
+		float temp_voltage = (analogRead(TEMPERATURE_PIN) * AREF_VOLTAGE) / 1024;
+		air_temp = (temp_voltage - 0.5) * 100;
+	}
+	else{
+		air_temperature_sensor.requestTemperatures();
+		air_temp = air_temperature_sensor.getTempCByIndex(0);
+	}
 
 	return air_temp;
 }

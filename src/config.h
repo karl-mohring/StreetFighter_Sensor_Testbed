@@ -7,6 +7,12 @@ const byte UNIT_ID = 1;
 const char UNIT_NAME[] = "Flauros";
 #define USE_SERIAL Serial1
 
+// Temperature sensor
+enum TEMPERATURE_SENSORS{
+    TMP36 = 0,
+    DS18B20 = 1
+};
+const byte TEMPERATURE_SENSOR = TMP36;
 // Comms settings
 const long SERIAL_BAUD = 57600;
 const int LOGGER_LEVEL = LOG_LEVEL_INFOS;

@@ -5,6 +5,8 @@
 const int SSL_TESTBED_VERSION = 8;
 const byte UNIT_ID = 1;
 const char UNIT_NAME[] = "Flauros";
+
+// Use Serial for debug; Serial1 for normal operation
 #define USE_SERIAL Serial1
 
 // Temperature sensor
@@ -36,7 +38,7 @@ const byte TEMPERATURE_PIN = A4;
 const byte CURRENT_DETECT_PIN = A5;
 
 // Timer config
-const int MOTION_COOLDOWN = 2000; // Time left for the PIR sensor to cool down after a detection in ms
+const int MOTION_COOLDOWN = 2500; // Time left for the PIR sensor to cool down after a detection in ms
 const int CHECK_MOTION_INTERVAL = MOTION_COOLDOWN/8;
 
 const int CHECK_FLOW_INTERVAL = 200;
@@ -57,13 +59,13 @@ const long XBEE_TRANSMIT_INTERVAL = PRINT_INTERVAL; // Time between XBee transmi
 const int YUN_BOOT_DELAY = 5000; //Time to wait for Yun to boot up before checking the handshake
 const long YUN_LINUX_BAUD_RATE = 250000;
 
-const byte COMMAND_CACHE_SIZE = 80;
-const byte SEND_BUFFER_SIZE = 50;
+const byte XBEE_BUFFER_SIZE = 100;
+const int SEND_BUFFER_SIZE = 300;
 const byte MIN_BASELINE_READS = 20; // Minimum number of reads needed to establish a baseline
 const byte MAX_BASELINE_READS = 30;
 const int BASELINE_READ_INTERVAL = 200; // Time between range baseline calibration reads
 const int BASELINE_VARIANCE_THRESHOLD = 20; // Maximum acceptable range sensor baseline error in cm.
-const byte MIN_SUCCESSIVE_SONAR_READS = 4;
+const byte MIN_SUCCESSIVE_SONAR_READS = 2;
 const byte MIN_SUCCESSIVE_LIDAR_READS = 0;
 const int MOTION_INITIALISATION_TIME = 10000; // Time given for PIR sensor to calibrate in ms.
 const byte MOTION_DETECTED = HIGH;
@@ -154,7 +156,7 @@ void start_sensors();
 void print_regular_entry();
 void trigger_traffic_event();
 void print_data();
-String pack_json_string();
+void pack_json_string();
 void start_sonar();
 int get_sonar_baseline(int variance);
 int get_sonar_range();

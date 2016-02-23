@@ -13,7 +13,7 @@ void Logging::Init(int level, Print* printer){
 }
 
 void Logging::Error(const char* msg, ...){
-    if (LOG_LEVEL_ERRORS <= _level) {   
+    if (LOG_LEVEL_ERRORS <= _level) {
         _printer->print("ERROR:\t");
         va_list args;
         va_start(args, msg);
@@ -125,13 +125,9 @@ void Logging::print(const char *format, va_list args) {
     }
     _printer->print("\n");
 }
- 
+
+int Logging::getLevel(){
+    return _level;
+}
+
 Logging Log = Logging();
-
- 
- 
-  
-
-
-
-

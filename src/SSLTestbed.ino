@@ -65,6 +65,7 @@ void setup(){
 	*/
 	data.id = UNIT_NAME;
 	data.version = SSL_TESTBED_VERSION;
+	lamp.control_enabled = false;
 
 	start_yun_serial();
 	Log.Info(P("Traffic Counter - ver %d"), SSL_TESTBED_VERSION);
@@ -158,7 +159,7 @@ void send_xbee_packet(){
 	/**
 	* Assemble an xbee packet of the current sensor values and send
 	*/
-	StraightBuffer send_buffer(SEND_BUFFER_SIZE);
+	StraightBuffer send_buffer(XBEE_BUFFER_SIZE);
 
 	// Add all the things
 	send_buffer.write(PACKET_START);
@@ -229,14 +230,14 @@ void trigger_traffic_event(){
 	*/
 
 	// Activate the lamp (if enabled)
-	if (lamp_control_enabled){
-		//activate_lamp();
+	if (lamp.control_enabled){
+		activate_lamp();
 	}
 
 	data.event_flag = true;
 	print_data();
 
-	send_xbee_packet();
+	//send_xbee_packet();
 }
 
 
@@ -245,18 +246,18 @@ void print_data(){
 	* Print the current traffic counts and info to Serial
 	*/
 	update_timestamp();
-	String s = pack_json_string();
-	Log.Info("%c%s%c", PACKET_START, s.c_str(), PACKET_END);
-
+	pack_json_string();
 }
 
 
-String pack_json_string(){
+void pack_json_string(){
 	/**
 	* Format the data packet into a JSON string
 	* :return: JSON formatted string containing selected data
 	*/
-	StaticJsonBuffer<200> print_buffer;
+
+	StaticJsonBuffer<300> print_buffer;
+
 	JsonObject& entry = print_buffer.createObject();
 
 	entry["version"] = data.version;
@@ -264,9 +265,9 @@ String pack_json_string(){
 	entry["event_flag"] = data.event_flag;
 	entry["count_pir"] = data.pir_count;
 	entry["pir_status"] = data.last_pir_status;
-	entry["count_lidar"] = data.lidar_count;
+	entry["lidar_count"] = data.lidar_count;
 	entry["lidar_range"] = data.lidar_range;
-	entry["count_uvd"] = data.sonar_count;
+	entry["uvd_count"] = data.sonar_count;
 	entry["uvd_range"] = data.sonar_range;
 	entry["air_temp"] = data.air_temperature;
 	entry["case_temp"] = data.case_temperature;
@@ -277,10 +278,14 @@ String pack_json_string(){
 	entry["noise"] = data.noise_level;
 	entry["timestamp"] = data.timestamp;
 
-	String out_string;
-	entry.printTo(out_string);
-	return out_string;
+	if (Log.getLevel() > LOG_LEVEL_NOOUTPUT){
+		USE_SERIAL.print(PACKET_START);
+		entry.printTo(USE_SERIAL);
+		USE_SERIAL.println(PACKET_END);
+	}
+
 }
+
 
 
 /* Sonar */
@@ -292,14 +297,16 @@ void start_sonar(){
 	*/
 
 	Log.Debug(P("Ultrasonic - Establishing baseline range..."));
-	int range_baseline = get_sonar_baseline(BASELINE_VARIANCE_THRESHOLD);
-	Log.Debug(P("Ultrasonic Baseline established: %d cm, %d cm variance"), range_baseline, BASELINE_VARIANCE_THRESHOLD);
+	data.sonar_baseline = get_sonar_baseline(BASELINE_VARIANCE_THRESHOLD);
 
 	// Enable the sensor if it passes the baseline check
-	if (range_baseline > RANGE_DETECT_THRESHOLD) {
+	if (data.sonar_baseline > RANGE_DETECT_THRESHOLD) {
 		sonar_timer = timer.setInterval(CHECK_RANGE_INTERVAL, update_sonar);
 		data.sonar_count = 0;
-		data.sonar_range = range_baseline;
+		data.sonar_range = 0;
+		Log.Info(P("Sonar started - Baseline: %dcm"), data.sonar_baseline);
+	}else{
+		Log.Error(P("Sonar initialisation failed - sensor disabled"));
 	}
 }
 
@@ -344,7 +351,7 @@ int get_sonar_range(){
 	* :return: Distance to object in cm
 	*/
 	int target_distance = sonar.getRange();
-	Log.Debug(P("Ultrasonic Range: %d cm"), target_distance);
+	Log.Verbose(P("Ultrasonic Range: %d cm"), target_distance);
 	return target_distance;
 }
 
@@ -394,12 +401,14 @@ void start_lidar(){
 
 	Log.Debug(P("Lidar - Establishing baseline range..."));
 	data.lidar_baseline = get_lidar_baseline(BASELINE_VARIANCE_THRESHOLD);
-	Log.Debug(P("Lidar Baseline established: %d cm, %d cm variance"), data.lidar_baseline, BASELINE_VARIANCE_THRESHOLD);
 
 	if (data.lidar_baseline > LIDAR_DETECT_THRESHOLD) {
 		lidar_timer = timer.setInterval(LIDAR_CHECK_RANGE_INTERVAL, update_lidar);
 		data.lidar_count = 0;
 		data.lidar_range = 0;
+		Log.Info(P("Lidar started - Baseline: %dcm"), data.lidar_baseline);
+	}else{
+		Log.Error(P("Lidar initialisation failed - sensor disabled"));
 	}
 }
 
@@ -443,7 +452,7 @@ int get_lidar_range(){
 	* :return: Target distance from sensor in cm
 	*/
 	int target_distance = lidar.getDistance();
-	Log.Debug(P("Lidar Range: %d cm"), target_distance);
+	Log.Verbose(P("Lidar Range: %d cm"), target_distance);
 	return target_distance;
 }
 

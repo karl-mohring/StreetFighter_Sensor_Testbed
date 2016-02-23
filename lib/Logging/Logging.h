@@ -13,14 +13,14 @@ extern "C" {
 }
 
 
-#define LOG_LEVEL_NOOUTPUT 0 
+#define LOG_LEVEL_NOOUTPUT 0
 #define LOG_LEVEL_ERRORS 1
 #define LOG_LEVEL_INFOS 2
 #define LOG_LEVEL_DEBUG 3
 #define LOG_LEVEL_VERBOSE 4
 
 // default loglevel if nothing is set from user
-#define LOGLEVEL LOG_LEVEL_DEBUG 
+#define LOGLEVEL LOG_LEVEL_DEBUG
 
 
 #define CR "\n"
@@ -74,15 +74,15 @@ private:
     long _baud;
     Print* _printer;
 public:
-    /*! 
+    /*!
 	 * default Constructor
 	 */
     Logging()
       : _level(LOG_LEVEL_NOOUTPUT),
         _baud(0),
         _printer(NULL) {}
-	
-    /** 
+
+    /**
 	* Initializing, must be called as first.
 	* \param level - logging levels <= this will be logged.
 	* \param baud - baud rate to initialize the serial port to.
@@ -90,7 +90,7 @@ public:
 	*
 	*/
 	void Init(int level, long baud);
-	
+
     /**
     * Initializing, must be called as first. Note that if you use
     * this variant of Init, you need to initialize the baud rate
@@ -112,7 +112,7 @@ public:
 	* \return void
 	*/
     void Error(const char* msg, ...);
-	
+
     /**
 	* Output an info message. Output message contains
 	* Info messages are printed out at l
@@ -124,7 +124,7 @@ public:
 	*/
 
    void Info(const char* msg, ...);
-	
+
     /**
 	* Output an debug message. Output message contains
 	* Debug messages are printed out at l
@@ -136,7 +136,7 @@ public:
 	*/
 
     void Debug(const char* msg, ...);
-	
+
     /**
 	* Output an verbose message. Output message contains
 	* Debug messages are printed out at l
@@ -149,14 +149,12 @@ public:
 
     void Verbose(const char* msg, ...);
 
-    
+	int getLevel();
+
+
 private:
     void print(const char *format, va_list args);
 };
 
 extern Logging Log;
 #endif
-
-
-
-

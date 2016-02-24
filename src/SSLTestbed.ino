@@ -159,32 +159,38 @@ void send_xbee_packet(){
 	/**
 	* Assemble an xbee packet of the current sensor values and send
 	*/
-	StraightBuffer send_buffer(XBEE_BUFFER_SIZE);
+	StraightBuffer xbee_buffer(XBEE_BUFFER_SIZE);
+	xbee_buffer.reset();
 
 	// Add all the things
-	send_buffer.write(PACKET_START);
-	send_buffer.write(AMBIENT_TEMPERATURE_TAG);
-	send_buffer.writeInt(int(float(data.air_temperature) * 100));
-	send_buffer.write(ROAD_TEMPERATURE_TAG);
-	send_buffer.writeInt(int(float(data.road_temperature * 100)));
-	send_buffer.write(HUMIDITY_TAG);
-	send_buffer.writeInt(int(float(data.humidity * 100)));
-	send_buffer.write(ILLUMINANCE_TAG);
-	send_buffer.writeInt(int(data.illuminance));
-	send_buffer.write(UVD_RANGE_TAG);
-	send_buffer.writeInt(data.sonar_range);
-	send_buffer.write(UVD_COUNT_TAG);
-	send_buffer.writeLong(data.sonar_count);
-	send_buffer.write(MOTION_STATUS_TAG);
-	send_buffer.write(data.last_pir_status);
-	send_buffer.write(MOTION_COUNT_TAG);
-	send_buffer.writeLong(data.pir_count);
-	send_buffer.write(LIDAR_RANGE_TAG);
-	send_buffer.writeInt(data.lidar_range);
-	send_buffer.write(LIDAR_COUNT_TAG);
-	send_buffer.writeLong(data.lidar_count);
+	xbee_buffer.write(PACKET_START);
+	xbee_buffer.write(AMBIENT_TEMPERATURE_TAG);
+	xbee_buffer.writeInt(int(float(data.air_temperature) * 100));
+	xbee_buffer.write(ROAD_TEMPERATURE_TAG);
+	xbee_buffer.writeInt(int(float(data.road_temperature * 100)));
+	xbee_buffer.write(HUMIDITY_TAG);
+	xbee_buffer.writeInt(int(float(data.humidity * 100)));
+	xbee_buffer.write(ILLUMINANCE_TAG);
+	xbee_buffer.writeInt(int(data.illuminance));
+	xbee_buffer.write(UVD_RANGE_TAG);
+	xbee_buffer.writeInt(data.sonar_range);
+	xbee_buffer.write(UVD_COUNT_TAG);
+	xbee_buffer.writeLong(data.sonar_count);
+	xbee_buffer.write(MOTION_STATUS_TAG);
+	xbee_buffer.write(data.last_pir_status);
+	xbee_buffer.write(MOTION_COUNT_TAG);
+	xbee_buffer.writeLong(data.pir_count);
+	xbee_buffer.write(LIDAR_RANGE_TAG);
+	xbee_buffer.writeInt(data.lidar_range);
+	xbee_buffer.write(LIDAR_COUNT_TAG);
+	xbee_buffer.writeLong(data.lidar_count);
 
-	xbee_bridge.write(send_buffer.getBufferAddress(), int(send_buffer.getWritePosition()));
+	xbee_bridge.write(xbee_buffer.getBufferAddress(), int(xbee_buffer.getWritePosition()));
+	xbee_bridge.flush();
+
+	xbee_buffer.destroy();
+
+	Log.Debug(P("Xbee packet sent"));
 }
 
 
@@ -236,8 +242,7 @@ void trigger_traffic_event(){
 
 	data.event_flag = true;
 	print_data();
-
-	//send_xbee_packet();
+	send_xbee_packet();
 }
 
 
@@ -299,13 +304,15 @@ void start_sonar(){
 	Log.Debug(P("Ultrasonic - Establishing baseline range..."));
 	data.sonar_baseline = get_sonar_baseline(BASELINE_VARIANCE_THRESHOLD);
 
+	data.sonar_count = 0;
+	data.sonar_range = 0;
+	sonar_timer = timer.setInterval(CHECK_RANGE_INTERVAL, update_sonar);
+
 	// Enable the sensor if it passes the baseline check
 	if (data.sonar_baseline > RANGE_DETECT_THRESHOLD) {
-		sonar_timer = timer.setInterval(CHECK_RANGE_INTERVAL, update_sonar);
-		data.sonar_count = 0;
-		data.sonar_range = 0;
 		Log.Info(P("Sonar started - Baseline: %dcm"), data.sonar_baseline);
 	}else{
+		data.sonar_baseline = 0;
 		Log.Error(P("Sonar initialisation failed - sensor disabled"));
 	}
 }
@@ -402,12 +409,15 @@ void start_lidar(){
 	Log.Debug(P("Lidar - Establishing baseline range..."));
 	data.lidar_baseline = get_lidar_baseline(BASELINE_VARIANCE_THRESHOLD);
 
+	lidar_timer = timer.setInterval(LIDAR_CHECK_RANGE_INTERVAL, update_lidar);
+	data.lidar_count = 0;
+	data.lidar_range = 0;
+
 	if (data.lidar_baseline > LIDAR_DETECT_THRESHOLD) {
-		lidar_timer = timer.setInterval(LIDAR_CHECK_RANGE_INTERVAL, update_lidar);
-		data.lidar_count = 0;
-		data.lidar_range = 0;
+
 		Log.Info(P("Lidar started - Baseline: %dcm"), data.lidar_baseline);
 	}else{
+		data.lidar_baseline = 0;
 		Log.Error(P("Lidar initialisation failed - sensor disabled"));
 	}
 }

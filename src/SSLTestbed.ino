@@ -19,6 +19,8 @@
 #include "config.h"
 
 // XBee
+byte _xbee_buffer[XBEE_BUFFER_SIZE];
+StraightBuffer xbee_buffer(_xbee_buffer, XBEE_BUFFER_SIZE);
 SoftwareSerial xbee_bridge(XBEE_RX, XBEE_TX);
 XBee xbee = XBee();
 
@@ -38,6 +40,10 @@ DallasTemperature air_temperature_sensor(&onewire);
 RTC_DS1307 rtc;
 EnergyMonitor current_monitor;
 bool lamp_control_enabled = false;
+
+// JSON serialiser - should be enclosed in function scope, but dynamic memory allocation scares me
+StaticJsonBuffer<300> print_buffer;
+JsonObject& entry = print_buffer.createObject();
 
 // Timers
 SimpleTimer timer;
@@ -159,7 +165,6 @@ void send_xbee_packet(){
 	/**
 	* Assemble an xbee packet of the current sensor values and send
 	*/
-	StraightBuffer xbee_buffer(XBEE_BUFFER_SIZE);
 	xbee_buffer.reset();
 
 	// Add all the things
@@ -186,9 +191,6 @@ void send_xbee_packet(){
 	xbee_buffer.writeLong(data.lidar_count);
 
 	xbee_bridge.write(xbee_buffer.getBufferAddress(), int(xbee_buffer.getWritePosition()));
-	xbee_bridge.flush();
-
-	xbee_buffer.destroy();
 
 	Log.Debug(P("Xbee packet sent"));
 }
@@ -251,19 +253,15 @@ void print_data(){
 	* Print the current traffic counts and info to Serial
 	*/
 	update_timestamp();
-	pack_json_string();
+	print_json_string();
 }
 
 
-void pack_json_string(){
+void print_json_string(){
 	/**
 	* Format the data packet into a JSON string
 	* :return: JSON formatted string containing selected data
 	*/
-
-	StaticJsonBuffer<300> print_buffer;
-
-	JsonObject& entry = print_buffer.createObject();
 
 	entry["version"] = data.version;
 	entry["id"] = data.id;
@@ -315,6 +313,8 @@ void start_sonar(){
 		data.sonar_baseline = 0;
 		Log.Error(P("Sonar initialisation failed - sensor disabled"));
 	}
+
+	update_sonar();
 }
 
 
@@ -420,6 +420,8 @@ void start_lidar(){
 		data.lidar_baseline = 0;
 		Log.Error(P("Lidar initialisation failed - sensor disabled"));
 	}
+
+	update_lidar();
 }
 
 
@@ -521,6 +523,8 @@ void start_pir(){
 	Log.Info(P("Motion started"));
 	data.pir_count = 0;
 	data.last_pir_status = false;
+
+	update_pir();
 }
 
 
@@ -574,11 +578,13 @@ void start_air_temperature(){
 	if (TEMPERATURE_SENSOR == TMP36){
 		pinMode(TEMPERATURE_PIN, INPUT);
 	}
-	else{ // DS18B20
+	else if (TEMPERATURE_SENSOR == DS18B20){ // DS18B20
 		air_temperature_sensor.begin();
 		air_temperature_sensor.setResolution(TEMPERATURE_RESOLUTION);
 	}
 	air_temperature_timer = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_air_temperature);
+
+	update_air_temperature();
 }
 
 
@@ -617,6 +623,8 @@ void start_road_temperature(){
 	*/
 	road_temperature_sensor.begin();
 	road_temperature_timer = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_road_temperature);
+
+	update_road_temperature();
 }
 
 
@@ -644,6 +652,8 @@ void start_case_temperature(){
 	*/
 	road_temperature_sensor.begin();
 	case_temperature_timer = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_case_temperature);
+
+	update_case_temperature();
 }
 
 
@@ -671,6 +681,8 @@ void start_humidity(){
 	*/
 	pinMode(HUMIDITY_PIN, INPUT);
 	humidity_timer = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_humidity);
+
+	update_humidity();
 }
 
 
@@ -710,6 +722,8 @@ void start_illuminance(){
 	illuminance_sensor.SetMode(Continuous_H_resolution_Mode);
 
 	illuminance_timer = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_illuminance);
+
+	update_illuminance();
 }
 
 

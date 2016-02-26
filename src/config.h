@@ -14,7 +14,7 @@ enum TEMPERATURE_SENSORS{
     TMP36 = 0,
     DS18B20 = 1
 };
-const byte TEMPERATURE_SENSOR = TMP36;
+const byte TEMPERATURE_SENSOR = DS18B20;
 // Comms settings
 const long SERIAL_BAUD = 57600;
 const int LOGGER_LEVEL = LOG_LEVEL_INFOS;
@@ -173,7 +173,7 @@ void start_air_temperature();
 void update_air_temperature();
 float get_air_temperature();
 void start_road_temperature();
-void update_road_temperatur();
+void update_road_temperature();
 float get_road_temperature();
 void start_case_temperature();
 void update_case_temperature();

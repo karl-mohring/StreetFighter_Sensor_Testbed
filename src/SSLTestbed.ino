@@ -260,7 +260,7 @@ void print_data(){
 void print_json_string(){
 	/**
 	* Format the data packet into a JSON string
-	* :return: JSON formatted string containing selected data
+	* @return JSON-formatted string containing selected data
 	*/
 
 	entry["version"] = data.version;

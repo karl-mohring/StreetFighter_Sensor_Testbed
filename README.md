@@ -41,7 +41,7 @@ After you get all all that, you just need to populate the PCBs, wire up the sens
     - Public WiFi AP (if wired connection is provided)
 
 ## Documentation
-- Full installation documentation can be found on the Wiki (Link coming soon...)
+- Full installation documentation can be found on the [Wiki](https://github.com/Leenix/StreetFighter_Sensor_Testbed/wiki)
 - Code documentation is inside the code. No external reference just yet.
 
 ## License

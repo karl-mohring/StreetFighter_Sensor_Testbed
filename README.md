@@ -19,23 +19,26 @@ The phrase "quick-start" can be misleading in hardware projects, but here's a li
 After you get all all that, you just need to populate the PCBs, wire up the sensors, configure the Yun software, build and upload the Arduino-side firmware, power the platform somehow, and then you're golden.
 
 ## [Features](https://github.com/Leenix/StreetFighter_Sensor_Testbed/wiki/Features)
-- Traffic detection
-    - PIR sensor detects generic movements from vehicles, cyslists, and pedestrians
-    - Sonar/Lidar counts vehicles over a single lane
-- Environmental monitoring
-    - Ambient temperature
-    - Relative humidity
-    - Illuminance
-    - Ambient noise
-    - Road temperature
-    - Road flood level
-- Lamp health and control
-    - Luminaire temperature
-    - Power consumption
-    - Dimming interface
-- Other
-    - Smartphone detection using Wifi and/or Bluetooth
-    - Public WiFi AP (if wired connection is provided)
+### Traffic detection
+- PIR sensor detects generic movements from vehicles, cyslists, and pedestrians
+- Sonar/Lidar counts vehicles over a single lane
+
+### Environmental monitoring
+- Ambient temperature
+- Relative humidity
+- Illuminance
+- Ambient noise
+- Road temperature
+- Road flood level
+
+### Lamp health and control
+- Luminaire temperature
+- Power consumption
+- Dimming interface
+
+### Other
+- Smartphone detection using Wifi and/or Bluetooth
+- Public WiFi AP (if wired connection is provided)
 
 ## Documentation
 - Full installation documentation can be found on the [Wiki](https://github.com/Leenix/StreetFighter_Sensor_Testbed/wiki)

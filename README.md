@@ -1,6 +1,8 @@
 # What is it?
 StreetFighter is a smart cities sensor platform intended for mounting inside LED street lights. The platform includes sensors to monitor road usage, and can manage street light dimming to adapt the light level to real-time traffic.
 
+![Streetfighter installed in LED streetlight](https://github.com/Leenix/StreetFighter_Sensor_Testbed/wiki/images/pole.jpg)
+
 ## Why the stupid name?
 - The main hardware platform of this project is the Arduino **Yun**.
 - **Yun** (Lee) is a character from CAPCOM's **Street Fighter** franchise.

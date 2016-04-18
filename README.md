@@ -1,14 +1,13 @@
-# Streetfighter Sensor Testbed
-### What is it?
+# What is it?
 StreetFighter is a smart cities sensor platform intended for mounting inside LED street lights. The platform includes sensors to monitor road usage, and can manage street light dimming to adapt the light level to real-time traffic.
 
-### Why the stupid name?
+## Why the stupid name?
 - The main hardware platform of this project is the Arduino **Yun**.
-- **Yun** (Lee) is a character from the **Street Fighter** franchise.
+- **Yun** (Lee) is a character from CAPCOM's **Street Fighter** franchise.
 - Our sensor platform is intended for road-side deployment in **street** lights to **fight** energy waste
 - It made sense to me...
 
-## [Quick Start](https://github.com/Leenix/StreetFighter_Sensor_Testbed/wiki/Hardware-Installation)
+# [Quick Start](https://github.com/Leenix/StreetFighter_Sensor_Testbed/wiki/Hardware-Installation)
 The phrase "quick-start" can be misleading in hardware projects, but here's a list of things you'll need to set up this platform [(Full details in the Wiki)](https://github.com/Leenix/StreetFighter_Sensor_Testbed/wiki):
 - Arduino Yun (with 4GB card) or Arduino Leonardo (for the non-logging, non-WiFi version)
 - StreetFighter PCB
@@ -18,12 +17,12 @@ The phrase "quick-start" can be misleading in hardware projects, but here's a li
 
 After you get all all that, you just need to populate the PCBs, wire up the sensors, configure the Yun software, build and upload the Arduino-side firmware, power the platform somehow, and then you're golden.
 
-## [Features](https://github.com/Leenix/StreetFighter_Sensor_Testbed/wiki/Features)
-### Traffic detection
+# [Features](https://github.com/Leenix/StreetFighter_Sensor_Testbed/wiki/Features)
+## Traffic detection
 - PIR sensor detects generic movements from vehicles, cyslists, and pedestrians
 - Sonar/Lidar counts vehicles over a single lane
 
-### Environmental monitoring
+## Environmental monitoring
 - Ambient temperature
 - Relative humidity
 - Illuminance
@@ -31,19 +30,19 @@ After you get all all that, you just need to populate the PCBs, wire up the sens
 - Road temperature
 - Road flood level
 
-### Lamp health and control
+## Lamp health and control
 - Luminaire temperature
 - Power consumption
 - Dimming interface
 
-### Other
+## Other
 - Smartphone detection using Wifi and/or Bluetooth
 - Public WiFi AP (if wired connection is provided)
 
-## Documentation
+# [Documentation](https://github.com/Leenix/StreetFighter_Sensor_Testbed/wiki)
 - Full installation documentation can be found on the [Wiki](https://github.com/Leenix/StreetFighter_Sensor_Testbed/wiki)
 - Code documentation is inside the code. No external reference just yet.
 
-## License
+# [License](http://www.gnu.org/licenses/gpl-3.0.en.html)
 
 This project is licensed under the terms of the GNU General Public License v3.0.

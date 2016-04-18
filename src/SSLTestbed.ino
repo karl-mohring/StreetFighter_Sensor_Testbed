@@ -1,6 +1,5 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
-#include <XBee.h>
 #include <SoftwareSerial.h>
 #include <EmonLib.h>
 #include <RTClib.h>
@@ -18,11 +17,10 @@
 
 #include "config.h"
 
-// XBee
+// XBee - in Transparent (Serial bridge) mode
 byte _xbee_buffer[XBEE_BUFFER_SIZE];
 StraightBuffer xbee_buffer(_xbee_buffer, XBEE_BUFFER_SIZE);
 SoftwareSerial xbee_bridge(XBEE_RX, XBEE_TX);
-XBee xbee = XBee();
 
 // Traffic Sensors
 Maxbotix sonar(RANGEFINDER_AN_PIN, Maxbotix::AN, Maxbotix::XL);
@@ -77,7 +75,7 @@ void setup(){
 	Log.Info(P("Traffic Counter - ver %d"), SSL_TESTBED_VERSION);
 
 	start_rtc();
-	//start_lamp_control();
+	start_lamp_control();
 	start_xbee();
 	start_sensors();
 }
@@ -153,48 +151,11 @@ void start_xbee(){
 	/**
 	* Start up xbee communication
 	* XBee is connected to software serial
+	* XBee communication uses AT mode - which just uses the XBee as a serial bridge.
+	* There is no packet handling and all data travels one way: out
 	*/
 	xbee_bridge.begin(XBEE_BAUD);
-	xbee.begin(xbee_bridge);
-
-	xbee_timer = timer.setInterval(XBEE_TRANSMIT_INTERVAL, send_xbee_packet);
 }
-
-
-void send_xbee_packet(){
-	/**
-	* Assemble an xbee packet of the current sensor values and send
-	*/
-	xbee_buffer.reset();
-
-	// Add all the things
-	xbee_buffer.write(PACKET_START);
-	xbee_buffer.write(AMBIENT_TEMPERATURE_TAG);
-	xbee_buffer.writeInt(int(float(data.air_temperature) * 100));
-	xbee_buffer.write(ROAD_TEMPERATURE_TAG);
-	xbee_buffer.writeInt(int(float(data.road_temperature * 100)));
-	xbee_buffer.write(HUMIDITY_TAG);
-	xbee_buffer.writeInt(int(float(data.humidity * 100)));
-	xbee_buffer.write(ILLUMINANCE_TAG);
-	xbee_buffer.writeInt(int(data.illuminance));
-	xbee_buffer.write(UVD_RANGE_TAG);
-	xbee_buffer.writeInt(data.sonar_range);
-	xbee_buffer.write(UVD_COUNT_TAG);
-	xbee_buffer.writeLong(data.sonar_count);
-	xbee_buffer.write(MOTION_STATUS_TAG);
-	xbee_buffer.write(data.last_pir_status);
-	xbee_buffer.write(MOTION_COUNT_TAG);
-	xbee_buffer.writeLong(data.pir_count);
-	xbee_buffer.write(LIDAR_RANGE_TAG);
-	xbee_buffer.writeInt(data.lidar_range);
-	xbee_buffer.write(LIDAR_COUNT_TAG);
-	xbee_buffer.writeLong(data.lidar_count);
-
-	xbee_bridge.write(xbee_buffer.getBufferAddress(), int(xbee_buffer.getWritePosition()));
-
-	Log.Debug(P("Xbee packet sent"));
-}
-
 
 /* Printing */
 void start_sensors(){
@@ -244,7 +205,6 @@ void trigger_traffic_event(){
 
 	data.event_flag = true;
 	print_data();
-	send_xbee_packet();
 }
 
 
@@ -285,7 +245,13 @@ void print_json_string(){
 		USE_SERIAL.print(PACKET_START);
 		entry.printTo(USE_SERIAL);
 		USE_SERIAL.println(PACKET_END);
+		USE_SERIAL.flush();
 	}
+
+	// Push the JSON string to XBee as well
+	xbee_bridge.print(PACKET_START);
+	entry.printTo(xbee_bridge);
+	xbee_bridge.print(PACKET_END);
 
 }
 

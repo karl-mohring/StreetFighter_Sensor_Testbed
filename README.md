@@ -11,8 +11,8 @@ StreetFighter is a smart cities sensor platform intended for mounting inside LED
 ### Will this name change?
 - Yes. I don't want to be sued by CAPCOM.
 
-## Quick Start
-The phrase "quick-start" can be misleading in hardware projects, but here's a list of things you'll need to set up this platform (Full details in the Wiki):
+## [Quick Start](https://github.com/Leenix/StreetFighter_Sensor_Testbed/wiki/Hardware-Installation)
+The phrase "quick-start" can be misleading in hardware projects, but here's a list of things you'll need to set up this platform [(Full details in the Wiki)](https://github.com/Leenix/StreetFighter_Sensor_Testbed/wiki):
 - Arduino Yun (with 4GB card) or Arduino Leonardo (for the non-logging, non-WiFi version)
 - StreetFighter PCB
 - Traffic sensors (sonar, lidar, PIR)
@@ -21,7 +21,7 @@ The phrase "quick-start" can be misleading in hardware projects, but here's a li
 
 After you get all all that, you just need to populate the PCBs, wire up the sensors, configure the Yun software, build and upload the Arduino-side firmware, power the platform somehow, and then you're golden.
 
-## Features
+## [Features](https://github.com/Leenix/StreetFighter_Sensor_Testbed/wiki/Features)
 - Traffic detection
     - PIR sensor detects generic movements from vehicles, cyslists, and pedestrians
     - Sonar/Lidar counts vehicles over a single lane

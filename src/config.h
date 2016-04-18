@@ -14,11 +14,11 @@ enum TEMPERATURE_SENSORS{
     TMP36 = 0,
     DS18B20 = 1
 };
-const byte TEMPERATURE_SENSOR = DS18B20;
+const byte TEMPERATURE_SENSOR = TMP36;
 // Comms settings
 const long SERIAL_BAUD = 57600;
 const int LOGGER_LEVEL = LOG_LEVEL_INFOS;
-const long XBEE_BAUD = 9600;
+const long XBEE_BAUD = 57600;
 
 // Pin assignments
 const byte YUN_HANDSHAKE_PIN = 7;

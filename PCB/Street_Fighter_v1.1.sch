@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="7.2.0">
+<eagle version="7.5.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="yes"/>
 <setting verticaltext="up"/>
 </settings>
-<grid distance="0.1" unitdist="inch" unit="inch" style="lines" multiple="1" display="yes" altdistance="0.01" altunitdist="inch" altunit="inch"/>
+<grid distance="0.1" unitdist="inch" unit="inch" style="lines" multiple="1" display="no" altdistance="0.01" altunitdist="inch" altunit="inch"/>
 <layers>
 <layer number="1" name="Top" color="4" fill="1" visible="no" active="no"/>
 <layer number="16" name="Bottom" color="1" fill="1" visible="no" active="no"/>
@@ -4946,7 +4946,7 @@ A3 Larger Frame</description>
 <part name="U2" library="Microchip_By_element14_Batch_1" deviceset="MCP6231RT-E/OT" device=""/>
 <part name="P+8" library="supply1" deviceset="+5V" device=""/>
 <part name="GND6" library="supply1" deviceset="GND" device=""/>
-<part name="R5" library="SparkFun-Passives" deviceset="RESISTOR" device="1206" value="330R"/>
+<part name="R5" library="SparkFun-Passives" deviceset="RESISTOR" device="1206" value="2K2 "/>
 <part name="R6" library="SparkFun-Passives" deviceset="RESISTOR" device="1206" value="75K"/>
 <part name="R7" library="SparkFun-Passives" deviceset="RESISTOR" device="1206" value="75K"/>
 <part name="C1" library="SparkFun-Capacitors" deviceset="10UF-6.3V-20%(1206)" device="" value="10uF"/>
@@ -5128,7 +5128,7 @@ Components</text>
 <instance part="GND6" gate="1" x="228.6" y="17.78"/>
 <instance part="R5" gate="G$1" x="218.44" y="35.56" smashed="yes" rot="R90">
 <attribute name="NAME" x="216.9414" y="31.75" size="1.778" layer="95" rot="R90"/>
-<attribute name="VALUE" x="221.742" y="24.13" size="1.778" layer="96" rot="R90"/>
+<attribute name="VALUE" x="221.742" y="31.75" size="1.778" layer="96" rot="R90"/>
 </instance>
 <instance part="R6" gate="G$1" x="203.2" y="35.56" rot="R90"/>
 <instance part="R7" gate="G$1" x="203.2" y="20.32" rot="R90"/>
@@ -5221,9 +5221,9 @@ Components</text>
 <instance part="GND3" gate="1" x="160.02" y="142.24"/>
 <instance part="C2" gate="G$1" x="160.02" y="154.94" rot="R180"/>
 <instance part="TEMP" gate="G$1" x="66.04" y="149.86"/>
-<instance part="RTC" gate="G$1" x="327.66" y="76.2"/>
-<instance part="P+17" gate="1" x="337.82" y="88.9"/>
-<instance part="GND15" gate="1" x="337.82" y="66.04"/>
+<instance part="RTC" gate="G$1" x="360.68" y="76.2"/>
+<instance part="P+17" gate="1" x="370.84" y="88.9"/>
+<instance part="GND15" gate="1" x="370.84" y="66.04"/>
 </instances>
 <busses>
 </busses>
@@ -5246,8 +5246,8 @@ Components</text>
 </segment>
 <segment>
 <pinref part="RTC" gate="G$1" pin="1"/>
-<wire x1="335.28" y1="71.12" x2="340.36" y2="71.12" width="0.2032" layer="91"/>
-<label x="340.36" y="71.12" size="1.27" layer="95" xref="yes"/>
+<wire x1="368.3" y1="71.12" x2="373.38" y2="71.12" width="0.2032" layer="91"/>
+<label x="373.38" y="71.12" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 <net name="SCL" class="0">
@@ -5268,8 +5268,8 @@ Components</text>
 </segment>
 <segment>
 <pinref part="RTC" gate="G$1" pin="2"/>
-<wire x1="335.28" y1="73.66" x2="340.36" y2="73.66" width="0.2032" layer="91"/>
-<label x="340.36" y="73.66" size="1.27" layer="95" xref="yes"/>
+<wire x1="368.3" y1="73.66" x2="373.38" y2="73.66" width="0.2032" layer="91"/>
+<label x="373.38" y="73.66" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 <net name="+5V" class="0">
@@ -5380,9 +5380,9 @@ Components</text>
 </segment>
 <segment>
 <pinref part="RTC" gate="G$1" pin="5"/>
-<wire x1="335.28" y1="81.28" x2="337.82" y2="81.28" width="0.2032" layer="91"/>
+<wire x1="368.3" y1="81.28" x2="370.84" y2="81.28" width="0.2032" layer="91"/>
 <pinref part="P+17" gate="1" pin="+5V"/>
-<wire x1="337.82" y1="81.28" x2="337.82" y2="86.36" width="0.2032" layer="91"/>
+<wire x1="370.84" y1="81.28" x2="370.84" y2="86.36" width="0.2032" layer="91"/>
 </segment>
 </net>
 <net name="+3V3" class="0">
@@ -5581,8 +5581,8 @@ Components</text>
 </segment>
 <segment>
 <pinref part="RTC" gate="G$1" pin="4"/>
-<wire x1="335.28" y1="78.74" x2="337.82" y2="78.74" width="0.2032" layer="91"/>
-<wire x1="337.82" y1="78.74" x2="337.82" y2="68.58" width="0.2032" layer="91"/>
+<wire x1="368.3" y1="78.74" x2="370.84" y2="78.74" width="0.2032" layer="91"/>
+<wire x1="370.84" y1="78.74" x2="370.84" y2="68.58" width="0.2032" layer="91"/>
 <pinref part="GND15" gate="1" pin="GND"/>
 </segment>
 </net>
@@ -5988,8 +5988,8 @@ Components</text>
 <net name="SQW" class="0">
 <segment>
 <pinref part="RTC" gate="G$1" pin="3"/>
-<wire x1="335.28" y1="76.2" x2="340.36" y2="76.2" width="0.2032" layer="91"/>
-<label x="340.36" y="76.2" size="1.27" layer="95" xref="yes"/>
+<wire x1="368.3" y1="76.2" x2="373.38" y2="76.2" width="0.2032" layer="91"/>
+<label x="373.38" y="76.2" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 </nets>

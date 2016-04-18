@@ -7,14 +7,14 @@ const byte UNIT_ID = 1;
 const char UNIT_NAME[] = "Flauros";
 
 // Use Serial for debug; Serial1 for normal operation
-#define USE_SERIAL Serial1
+#define USE_SERIAL Serial
 
 // Temperature sensor
 enum TEMPERATURE_SENSORS{
     TMP36 = 0,
     DS18B20 = 1
 };
-const byte TEMPERATURE_SENSOR = TMP36;
+const byte TEMPERATURE_SENSOR = DS18B20;
 // Comms settings
 const long SERIAL_BAUD = 57600;
 const int LOGGER_LEVEL = LOG_LEVEL_INFOS;
@@ -82,27 +82,9 @@ const float CURRENT_CALIBRATION_FACTOR = TRANSFORMER_RATIO / BURDEN_RESISTOR;
 
 // Commands & Tags
 const char COMMAND_TERMINATOR = '$';
-const char RESET_UVD_COUNT = 'q';
-const char DISABLE_UVD = 'w';
-const char ENABLE_UVD = 'e';
 const char PACKET_START = '#';
 const char PACKET_END = '$';
-const char AMBIENT_TEMPERATURE_TAG = 'A';
-const char ROAD_TEMPERATURE_TAG = 'R';
-const char CASE_TEMPERATURE_TAG = 'E';
-const char HUMIDITY_TAG = 'H';
-const char ILLUMINANCE_TAG = 'I';
-const char LAMP_STATUS_TAG = 'S';
-const char NOISE_TAG = 'N';
-const char CURRENT_DRAW_TAG = 'C';
-const char TIMESTAMP_TAG = 'T';
-const char UVD_RANGE_TAG = 'U';
-const char UVD_COUNT_TAG = 'u';
-const char MOTION_STATUS_TAG = 'M';
-const char MOTION_COUNT_TAG = 'm';
-const char LIDAR_RANGE_TAG = 'L';
-const char LIDAR_COUNT_TAG = 'l';
-const char TRAFFIC_EVENT_TAG = 't';
+
 
 // Lamp Dimming
 const byte ACTIVE_BRIGHTNESS = 255;

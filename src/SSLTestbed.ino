@@ -12,7 +12,6 @@
 #include <StraightBuffer.h>
 #include <Logging.h>
 #include <ArduinoJson.h>
-#include <Maxbotix.h>
 #include <SimpleTimer.h>
 
 #include "config.h"
@@ -256,7 +255,6 @@ void print_json_string(){
 }
 
 
-
 /* Sonar */
 void start_sonar(){
 	/**
@@ -323,9 +321,17 @@ int get_sonar_range(){
 	* Get the range in cm from the ultrasonic rangefinder
 	* :return: Distance to object in cm
 	*/
-	int target_distance = sonar.getRange();
-	Log.Verbose(P("Ultrasonic Range: %d cm"), target_distance);
-	return target_distance;
+
+	// The time of flight for the entire pulse, including the transmitted and reflected wave.
+	long raw_time_of_flight = pulseIn(RANGEFINDER_AN_PIN, HIGH, CHECK_RANGE_INTERVAL*1000);
+
+	// Ref: https://en.wikipedia.org/wiki/Speed_of_sound#Practical_formula_for_dry_air
+	// Humidity does affect the speed of sound in air, but only slightly
+	long compensated_distance = (raw_time_of_flight * (331.3 + 0.606 * data.air_temperature)) / 20000;
+
+	Log.Verbose(P("Ultrasonic Range: %d cm"), compensated_distance);
+
+	return int(compensated_distance);
 }
 
 

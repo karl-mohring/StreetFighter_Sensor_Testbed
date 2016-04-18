@@ -74,8 +74,6 @@ void setup(){
 	start_yun_serial();
 	Log.Info(P("Traffic Counter - ver %d"), SSL_TESTBED_VERSION);
 
-	start_rtc();
-	start_lamp_control();
 	start_xbee();
 	start_sensors();
 }
@@ -164,8 +162,8 @@ void start_sensors(){
 	* A timer is started to regularly print sensor data
 	*/
 	// Traffic
-	start_sonar();
-	start_lidar();
+	//start_sonar(); // Sonar faces out-of-range issues
+	//start_lidar(); // Lidar stopped working after 2016-03-20
 	start_pir();
 
 	// Environment

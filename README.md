@@ -8,9 +8,6 @@ StreetFighter is a smart cities sensor platform intended for mounting inside LED
 - Our sensor platform is intended for road-side deployment in **street** lights to **fight** energy waste
 - It made sense to me...
 
-### Will this name change?
-- Yes. I don't want to be sued by CAPCOM.
-
 ## [Quick Start](https://github.com/Leenix/StreetFighter_Sensor_Testbed/wiki/Hardware-Installation)
 The phrase "quick-start" can be misleading in hardware projects, but here's a list of things you'll need to set up this platform [(Full details in the Wiki)](https://github.com/Leenix/StreetFighter_Sensor_Testbed/wiki):
 - Arduino Yun (with 4GB card) or Arduino Leonardo (for the non-logging, non-WiFi version)

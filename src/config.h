@@ -15,23 +15,38 @@ enum TEMPERATURE_SENSORS{
     DS18B20 = 1
 };
 const byte TEMPERATURE_SENSOR = TMP36;
+
+///////////////////////////////////////////////////////////////////////////////
 // Comms settings
 const long SERIAL_BAUD = 57600;
 const int LOGGER_LEVEL = LOG_LEVEL_INFOS;
-const long XBEE_BAUD = 9600;
 
+// XBee Socket 1
+const long XBEE_BAUD = 9600;
+enum XBEE_1_COMMS{
+    UART = 0,
+    SPI = 1
+};
+const byte XBEE_1_MODE = UART;
+
+// XBee Socket 2
+const long XBEE_2_BAUD = 9600;
+const bool XBEE_2_ENABLED = false;
+
+///////////////////////////////////////////////////////////////////////////////
 // Pin assignments
-const byte YUN_HANDSHAKE_PIN = 7;
-const byte XBEE_TX = 5;
 const byte XBEE_RX = 4;
-const byte XBEE_SLEEP_PIN = 8;
+const byte XBEE_TX = 5;
 const byte LAMP_CONTROL_PIN = 6;
+const byte YUN_HANDSHAKE_PIN = 7;
+const byte XBEE_SLEEP_PIN = 8;
 const byte PIR_MOTION_PIN = 9;
 const byte LIDAR_PWM_PIN = 10;
+const byte XBEE_2_RX = 11;
+const byte XBEE_2_TX = 12;
 const byte LIDAR_TRIGGER_PIN = 13;
 
-const byte LAMP_STATUS_PIN = A0;
-const byte RANGEFINDER_AN_PIN = A1;
+const byte SONAR_PIN = A0;
 const byte MICROPHONE_PIN = A2;
 const byte HUMIDITY_PIN = A3;
 const byte TEMPERATURE_PIN = A4;

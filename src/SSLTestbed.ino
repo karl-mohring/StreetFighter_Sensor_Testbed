@@ -75,7 +75,7 @@ void setup(){
 	Log.Info(P("Traffic Counter - ver %d"), SSL_TESTBED_VERSION);
 
 	start_rtc();
-	start_lamp_control();
+	enable_lamp_control();
 	start_xbee();
 	start_sensors();
 }

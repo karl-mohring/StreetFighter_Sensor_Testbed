@@ -23,7 +23,6 @@ StraightBuffer xbee_buffer(_xbee_buffer, XBEE_BUFFER_SIZE);
 SoftwareSerial xbee_bridge(XBEE_RX, XBEE_TX);
 
 // Traffic Sensors
-Maxbotix sonar(RANGEFINDER_AN_PIN, Maxbotix::AN, Maxbotix::XL);
 static int successive_sonar_detections = 0;
 LIDAR_Lite_PWM lidar(LIDAR_TRIGGER_PIN, LIDAR_PWM_PIN);
 static int successive_lidar_detections = 0;
@@ -256,7 +255,6 @@ void print_json_string(){
 }
 
 
-
 /* Sonar */
 void start_sonar(){
 	/**
@@ -282,7 +280,6 @@ void start_sonar(){
 
 	update_sonar();
 }
-
 
 int get_sonar_baseline(int variance){
 	/**
@@ -317,15 +314,22 @@ int get_sonar_baseline(int variance){
 	return average_range;
 }
 
-
 int get_sonar_range(){
 	/**
 	* Get the range in cm from the ultrasonic rangefinder
 	* :return: Distance to object in cm
 	*/
-	int target_distance = sonar.getRange();
-	Log.Verbose(P("Ultrasonic Range: %d cm"), target_distance);
-	return target_distance;
+
+	// The time of flight for the entire pulse, including the transmitted and reflected wave.
+	long raw_time_of_flight = pulseIn(SONAR_PIN, HIGH, CHECK_RANGE_INTERVAL*1000);
+
+	// Ref: https://en.wikipedia.org/wiki/Speed_of_sound#Practical_formula_for_dry_air
+	// Humidity does affect the speed of sound in air, but only slightly
+	long compensated_distance = (raw_time_of_flight * (331.3 + 0.606 * data.air_temperature)) / 20000;
+
+	Log.Verbose(P("Ultrasonic Range: %d cm"), compensated_distance);
+
+	return int(compensated_distance);
 }
 
 

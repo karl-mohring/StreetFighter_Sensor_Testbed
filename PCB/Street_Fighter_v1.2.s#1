@@ -4629,6 +4629,8 @@ LilyPad 1206- DIO-09912&lt;br&gt;
 <text x="53.34" y="168.91" size="2.54" layer="97" ratio="15">Yun Breakout</text>
 <text x="340.36" y="204.47" size="2.54" layer="97" ratio="15">Current Monitor</text>
 <text x="109.22" y="151.13" size="2.54" layer="97" ratio="15">XBee Socket 1</text>
+<text x="33.02" y="619.76" size="6.4516" layer="91" ratio="15">Base 
+Components</text>
 <text x="39.116" y="44.196" size="2.54" layer="115" ratio="15">Sonar</text>
 <text x="170.688" y="43.688" size="2.54" layer="114" ratio="15">Illuminance</text>
 <text x="295.148" y="43.688" size="2.54" layer="114" ratio="15">Road Temperature</text>
@@ -6106,4 +6108,10 @@ LilyPad 1206- DIO-09912&lt;br&gt;
 </errors>
 </schematic>
 </drawing>
+<compatibility>
+<note version="6.3" minversion="6.2.2" severity="warning">
+Since Version 6.2.2 text objects can contain more than one line,
+which will not be processed correctly with this version.
+</note>
+</compatibility>
 </eagle>

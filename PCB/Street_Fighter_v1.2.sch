@@ -4596,6 +4596,9 @@ LilyPad 1206- DIO-09912&lt;br&gt;
 <part name="GND29" library="supply1" deviceset="GND" device=""/>
 <part name="RTC" library="SparkFun-Connectors" deviceset="M04" device="PTH" value="DC1307"/>
 <part name="LIDAR" library="SparkFun-Connectors" deviceset="M03" device="PTH" value="LidarLite"/>
+<part name="P+28" library="supply1" deviceset="+5V" device=""/>
+<part name="GND30" library="supply1" deviceset="GND" device=""/>
+<part name="SPARE" library="SparkFun-Connectors" deviceset="M03" device="PTH" value="A1"/>
 </parts>
 <sheets>
 <sheet>
@@ -4629,8 +4632,6 @@ LilyPad 1206- DIO-09912&lt;br&gt;
 <text x="53.34" y="168.91" size="2.54" layer="97" ratio="15">Yun Breakout</text>
 <text x="340.36" y="204.47" size="2.54" layer="97" ratio="15">Current Monitor</text>
 <text x="109.22" y="151.13" size="2.54" layer="97" ratio="15">XBee Socket 1</text>
-<text x="33.02" y="619.76" size="6.4516" layer="91" ratio="15">Base 
-Components</text>
 <text x="39.116" y="44.196" size="2.54" layer="115" ratio="15">Sonar</text>
 <text x="170.688" y="43.688" size="2.54" layer="114" ratio="15">Illuminance</text>
 <text x="295.148" y="43.688" size="2.54" layer="114" ratio="15">Road Temperature</text>
@@ -4699,6 +4700,11 @@ Components</text>
 <wire x1="378.46" y1="172.72" x2="378.46" y2="195.58" width="0.6096" layer="97"/>
 <wire x1="378.46" y1="195.58" x2="337.82" y2="195.58" width="0.6096" layer="97"/>
 <text x="338.582" y="173.482" size="2.032" layer="97" ratio="15">ICSP Header</text>
+<text x="340.868" y="43.688" size="2.54" layer="114" ratio="15">Spare</text>
+<wire x1="340.36" y1="43.18" x2="340.36" y2="73.66" width="0.4064" layer="114"/>
+<wire x1="340.36" y1="73.66" x2="368.3" y2="73.66" width="0.4064" layer="114"/>
+<wire x1="368.3" y1="73.66" x2="368.3" y2="43.18" width="0.4064" layer="114"/>
+<wire x1="368.3" y1="43.18" x2="340.36" y2="43.18" width="0.4064" layer="114"/>
 </plain>
 <instances>
 <instance part="U1" gate="G$1" x="48.26" y="210.82"/>
@@ -4906,6 +4912,9 @@ Components</text>
 <attribute name="VALUE" x="116.078" y="54.864" size="1.778" layer="96" rot="R180"/>
 <attribute name="NAME" x="106.68" y="66.802" size="1.778" layer="95"/>
 </instance>
+<instance part="P+28" gate="1" x="358.14" y="71.12"/>
+<instance part="GND30" gate="1" x="355.6" y="50.8"/>
+<instance part="SPARE" gate="G$1" x="345.44" y="60.96"/>
 </instances>
 <busses>
 </busses>
@@ -5091,6 +5100,12 @@ Components</text>
 <pinref part="P+31" gate="1" pin="+5V"/>
 <wire x1="368.3" y1="187.96" x2="368.3" y2="190.5" width="0.2032" layer="91"/>
 <wire x1="365.76" y1="187.96" x2="368.3" y2="187.96" width="0.2032" layer="91"/>
+</segment>
+<segment>
+<pinref part="SPARE" gate="G$1" pin="3"/>
+<pinref part="P+28" gate="1" pin="+5V"/>
+<wire x1="353.06" y1="63.5" x2="358.14" y2="63.5" width="0.2032" layer="91"/>
+<wire x1="358.14" y1="63.5" x2="358.14" y2="68.58" width="0.2032" layer="91"/>
 </segment>
 </net>
 <net name="+3V3" class="0">
@@ -5413,6 +5428,12 @@ Components</text>
 <pinref part="GND15" gate="1" pin="GND"/>
 <wire x1="215.9" y1="124.46" x2="218.44" y2="124.46" width="0.2032" layer="91"/>
 <wire x1="218.44" y1="124.46" x2="218.44" y2="119.38" width="0.2032" layer="91"/>
+</segment>
+<segment>
+<pinref part="SPARE" gate="G$1" pin="1"/>
+<pinref part="GND30" gate="1" pin="GND"/>
+<wire x1="353.06" y1="58.42" x2="355.6" y2="58.42" width="0.2032" layer="91"/>
+<wire x1="355.6" y1="58.42" x2="355.6" y2="53.34" width="0.2032" layer="91"/>
 </segment>
 </net>
 <net name="TEMP" class="0">
@@ -6068,6 +6089,18 @@ Components</text>
 <label x="147.32" y="121.92" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
+<net name="SPARE" class="0">
+<segment>
+<label x="355.6" y="60.96" size="1.27" layer="95" xref="yes"/>
+<wire x1="355.6" y1="60.96" x2="353.06" y2="60.96" width="0.2032" layer="91"/>
+<pinref part="SPARE" gate="G$1" pin="2"/>
+</segment>
+<segment>
+<pinref part="U1" gate="G$1" pin="A1"/>
+<wire x1="33.02" y1="195.58" x2="27.94" y2="195.58" width="0.2032" layer="91"/>
+<label x="27.94" y="195.58" size="1.27" layer="95" rot="R180" xref="yes"/>
+</segment>
+</net>
 </nets>
 </sheet>
 </sheets>
@@ -6108,10 +6141,4 @@ Components</text>
 </errors>
 </schematic>
 </drawing>
-<compatibility>
-<note version="6.3" minversion="6.2.2" severity="warning">
-Since Version 6.2.2 text objects can contain more than one line,
-which will not be processed correctly with this version.
-</note>
-</compatibility>
 </eagle>

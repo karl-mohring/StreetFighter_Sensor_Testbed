@@ -1,5 +1,7 @@
 # StreetFighter - Smart Streetlight Testbed
-[![Build badge](https://travis-ci.org/Leenix/StreetFighter_Sensor_Testbed.svg?branch=master)](https://travis-ci.org/Leenix/StreetFighter_Sensor_Testbed) [![License](http://www.gnu.org/graphics/gplv3-127x51.png)](http://www.gnu.org/licenses/gpl-3.0.en.html)
+[![Build badge](https://travis-ci.org/Leenix/StreetFighter_Sensor_Testbed.svg?branch=master)](https://travis-ci.org/Leenix/StreetFighter_Sensor_Testbed)
+[![Arduino badge](https://img.shields.io/badge/platform-Arduino-brightgreen.svg)](http://www.arduino.cc/)
+[![License](http://www.gnu.org/graphics/gplv3-127x51.png)](http://www.gnu.org/licenses/gpl-3.0.en.html)
 
 # What is it?
 StreetFighter is a smart cities sensor platform intended for mounting inside LED street lights. The platform includes sensors to monitor road usage, and can manage street light dimming to adapt the light level to real-time traffic.

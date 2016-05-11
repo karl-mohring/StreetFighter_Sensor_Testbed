@@ -1,19 +1,19 @@
+#include <Arduino.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <SoftwareSerial.h>
 #include <EmonLib.h>
 #include <RTClib.h>
 #include <Wire.h>
-#include <BH1750FVI.h>
-#include <Adafruit_MLX90614.h>
-#include <Arduino.h>
-#include <LIDARduino.h>
-#include <ProgmemString.h>
-#include <StraightBuffer.h>
-#include <Logging.h>
 #include <ArduinoJson.h>
-#include <Maxbotix.h>
-#include <SimpleTimer.h>
+
+#include "BH1750FVI.h"
+#include "Adafruit_MLX90614.h"
+#include "LIDARduino.h"
+#include "ProgmemString.h"
+#include "StraightBuffer.h"
+#include "Logging.h"
+#include "SimpleTimer.h"
 
 #include "config.h"
 
@@ -281,6 +281,7 @@ void start_sonar(){
 	update_sonar();
 }
 
+
 int get_sonar_baseline(int variance){
 	/**
 	* Establish the baseline range from the sensor to the ground
@@ -313,6 +314,7 @@ int get_sonar_baseline(int variance){
 
 	return average_range;
 }
+
 
 int get_sonar_range(){
 	/**

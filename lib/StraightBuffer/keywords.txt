@@ -1,0 +1,31 @@
+#######################################
+# Syntax Coloring Map For StraightBuffers Lib
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+StraightBuffer	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+reset		KEYWORD2
+getWritePosition	KEYWORD2
+getReadPosition		KEYWORD2
+getNumRemaining	KEYWORD2
+write 	KEYWORD2
+writeInt	KEYWORD2
+writeLong	KEYWORD2
+read		KEYWORD2
+readInt	KEYWORD2
+readLong	KEYWORD2
+peek	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+

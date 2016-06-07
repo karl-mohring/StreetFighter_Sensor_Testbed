@@ -35,22 +35,27 @@ const bool XBEE_2_ENABLED = false;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Pin assignments
-const byte XBEE_RX = 4;
-const byte XBEE_TX = 5;
-const byte LAMP_CONTROL_PIN = 6;
-const byte YUN_HANDSHAKE_PIN = 7;
-const byte XBEE_SLEEP_PIN = 8;
-const byte PIR_MOTION_PIN = 9;
-const byte LIDAR_PWM_PIN = 10;
-const byte XBEE_2_RX = 11;
-const byte XBEE_2_TX = 12;
-const byte LIDAR_TRIGGER_PIN = 13;
 
-const byte SONAR_PIN = A0;
-const byte MICROPHONE_PIN = A2;
-const byte HUMIDITY_PIN = A3;
-const byte TEMPERATURE_PIN = A4;
-const byte CURRENT_DETECT_PIN = A5;
+const byte YUN_RX = 0;  // Unused Pin - Tied to USB UART
+const byte YUN_TX = 1;  // Unused Pin - Tied to USB UART
+const byte SPI_ATTN = 4;    // SPI Attention pin for XBEE-SPI comms
+const byte SPI_SS = 5;  // SPI Slave Select
+const byte LAMP_CONTROL_PIN = 6;    // Lamp control - uses PWM with inverse duty cycle
+const byte YUN_HANDSHAKE_PIN = 7;   // Yun handshake - HIGH when Yun is busy/booting
+const byte XBEE_SLEEP_PIN = 8;  // XBEE sleep pin; Bring HIGH to allow XBEE comms
+const byte PIR_MOTION_PIN = 9;  // PIR motion detect pin; pulled HIGH when motion is detected
+const byte COMM_2_TX = 10;  // Send pin for XBEE socket 2; UART-only
+const byte COMM_2_RX = 11;  // Receive pin for XBEE socket 2; UART-only
+const byte LIDAR_PWM_PIN = 12;  // Data pin for LIDARLite
+const byte LIDAR_TRIGGER_PIN = 13;  // PWM Trigger pin for LIDARLite
+const byte COMM_1_TX = 14;  // Send pin for XBEE socket 1; UART and SPI compatible
+const byte COMM_1_RX = 16;  // Receive pin for XBEE socket 1; UART and SPI compatible
+
+const byte SONAR_PIN = A0;  // Sonar receive pin - can use pulse width or ADC for distance measurements
+const byte MICROPHONE_PIN = A2; // Microphone level pin - Gives ADC volume envelope
+const byte HUMIDITY_PIN = A3;   // Humidity level pin - Gives ADC humidity level
+const byte TEMPERATURE_PIN = A4;    // Temperature data pin for DS18B20 digital temperature probe
+const byte CURRENT_DETECT_PIN = A5; // Current monitor pin for current clamp - gives offset ADC current wave
 
 // Timer config
 const int MOTION_COOLDOWN = 2500; // Time left for the PIR sensor to cool down after a detection in ms

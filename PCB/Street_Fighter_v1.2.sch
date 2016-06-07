@@ -5096,7 +5096,6 @@ LilyPad 1206- DIO-09912&lt;br&gt;
 </segment>
 <segment>
 <pinref part="J1" gate="G$1" pin="2"/>
-<wire x1="365.76" y1="187.96" x2="368.3" y2="187.96" width="0.2032" layer="91"/>
 <pinref part="P+31" gate="1" pin="+5V"/>
 <wire x1="368.3" y1="187.96" x2="368.3" y2="190.5" width="0.2032" layer="91"/>
 <wire x1="365.76" y1="187.96" x2="368.3" y2="187.96" width="0.2032" layer="91"/>
@@ -6136,8 +6135,6 @@ LilyPad 1206- DIO-09912&lt;br&gt;
 <approved hash="106,1,350.52,182.88,RST,,,,,"/>
 <approved hash="106,1,63.5,185.42,RX-YUN,,,,,"/>
 <approved hash="106,1,63.5,187.96,TX-YUN,,,,,"/>
-<approved hash="113,1,205.253,175.26,SJ1,,,,,"/>
-<approved hash="113,1,233.193,175.26,SJ2,,,,,"/>
 </errors>
 </schematic>
 </drawing>

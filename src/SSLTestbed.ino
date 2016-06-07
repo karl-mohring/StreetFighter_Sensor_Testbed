@@ -20,7 +20,7 @@
 // XBee - in Transparent (Serial bridge) mode
 byte _xbee_buffer[XBEE_BUFFER_SIZE];
 StraightBuffer xbee_buffer(_xbee_buffer, XBEE_BUFFER_SIZE);
-SoftwareSerial xbee_bridge(XBEE_RX, XBEE_TX);
+SoftwareSerial xbee_bridge(COMM_1_RX, COMM_1_TX);
 
 // Traffic Sensors
 static int successive_sonar_detections = 0;
@@ -45,18 +45,6 @@ JsonObject& entry = print_buffer.createObject();
 // Timers
 SimpleTimer timer;
 int pir_timer = -1;
-int flow_timer = -1;
-int sonar_timer = -1;
-int lidar_timer = -1;
-int air_temperature_timer = -1;
-int road_temperature_timer = -1;
-int case_temperature_timer = -1;
-int humidity_timer = -1;
-int illuminance_timer = -1;
-int noise_timer = -1;
-int current_timer = -1;
-int report_timer = -1;
-int xbee_timer = -1;
 
 SensorEntry data;
 LampControl lamp;
@@ -176,7 +164,7 @@ void start_sensors(){
 	start_noise_monitoring();
 
 	// Start timer for regular entry transmission
-	report_timer = timer.setInterval(PRINT_INTERVAL, print_regular_entry);
+	timer.setInterval(PRINT_INTERVAL, print_regular_entry);
 }
 
 
@@ -222,23 +210,23 @@ void print_json_string(){
 	* @return JSON-formatted string containing selected data
 	*/
 
-	entry["version"] = data.version;
-	entry["id"] = data.id;
-	entry["event_flag"] = data.event_flag;
-	entry["count_pir"] = data.pir_count;
-	entry["pir_status"] = data.last_pir_status;
-	entry["lidar_count"] = data.lidar_count;
-	entry["lidar_range"] = data.lidar_range;
-	entry["uvd_count"] = data.sonar_count;
-	entry["uvd_range"] = data.sonar_range;
-	entry["air_temp"] = data.air_temperature;
-	entry["case_temp"] = data.case_temperature;
-	entry["road_temp"] = data.road_temperature;
-	entry["humidity"] = data.humidity;
-	entry["illuminance"] = data.illuminance;
-	entry["current_draw"] = data.current_draw;
-	entry["noise"] = data.noise_level;
-	entry["timestamp"] = data.timestamp;
+	entry[P("version")] = data.version;
+	entry[P("id")] = data.id;
+	entry[P("event_flag")] = data.event_flag;
+	entry[P("count_pir")] = data.pir_count;
+	entry[P("pir_status")] = data.last_pir_status;
+	entry[P("lidar_count")] = data.lidar_count;
+	entry[P("lidar_range")] = data.lidar_range;
+	entry[P("uvd_count")] = data.sonar_count;
+	entry[P("uvd_range")] = data.sonar_range;
+	entry[P("air_temp")] = data.air_temperature;
+	entry[P("case_temp")] = data.case_temperature;
+	entry[P("road_temp")] = data.road_temperature;
+	entry[P("humidity")] = data.humidity;
+	entry[P("illuminance")] = data.illuminance;
+	entry[P("current_draw")] = data.current_draw;
+	entry[P("noise")] = data.noise_level;
+	entry[P("timestamp")] = data.timestamp;
 
 	if (Log.getLevel() > LOG_LEVEL_NOOUTPUT){
 		USE_SERIAL.print(PACKET_START);
@@ -268,7 +256,7 @@ void start_sonar(){
 
 	data.sonar_count = 0;
 	data.sonar_range = 0;
-	sonar_timer = timer.setInterval(CHECK_RANGE_INTERVAL, update_sonar);
+	timer.setInterval(CHECK_RANGE_INTERVAL, update_sonar);
 
 	// Enable the sensor if it passes the baseline check
 	if (data.sonar_baseline > RANGE_DETECT_THRESHOLD) {
@@ -381,7 +369,7 @@ void start_lidar(){
 	Log.Debug(P("Lidar - Establishing baseline range..."));
 	data.lidar_baseline = get_lidar_baseline(BASELINE_VARIANCE_THRESHOLD);
 
-	lidar_timer = timer.setInterval(LIDAR_CHECK_RANGE_INTERVAL, update_lidar);
+	timer.setInterval(LIDAR_CHECK_RANGE_INTERVAL, update_lidar);
 	data.lidar_count = 0;
 	data.lidar_range = 0;
 
@@ -554,7 +542,7 @@ void start_air_temperature(){
 		air_temperature_sensor.begin();
 		air_temperature_sensor.setResolution(TEMPERATURE_RESOLUTION);
 	}
-	air_temperature_timer = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_air_temperature);
+	timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_air_temperature);
 
 	update_air_temperature();
 }
@@ -594,7 +582,7 @@ void start_road_temperature(){
 	* Start the road temperature sensor
 	*/
 	road_temperature_sensor.begin();
-	road_temperature_timer = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_road_temperature);
+	timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_road_temperature);
 
 	update_road_temperature();
 }
@@ -623,7 +611,7 @@ void start_case_temperature(){
 	* Start the road temperature sensor
 	*/
 	road_temperature_sensor.begin();
-	case_temperature_timer = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_case_temperature);
+	timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_case_temperature);
 
 	update_case_temperature();
 }
@@ -652,7 +640,7 @@ void start_humidity(){
 	* Start the HIH4030 humidity sensor
 	*/
 	pinMode(HUMIDITY_PIN, INPUT);
-	humidity_timer = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_humidity);
+	timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_humidity);
 
 	update_humidity();
 }
@@ -693,7 +681,7 @@ void start_illuminance(){
 	illuminance_sensor.SetAddress(Device_Address_L);
 	illuminance_sensor.SetMode(Continuous_H_resolution_Mode);
 
-	illuminance_timer = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_illuminance);
+	timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_illuminance);
 
 	update_illuminance();
 }
@@ -724,7 +712,7 @@ void start_noise_monitoring(){
 	*/
 	pinMode(MICROPHONE_PIN, INPUT);
 
-	noise_timer = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_noise_level);
+	timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_noise_level);
 }
 
 
@@ -764,7 +752,7 @@ void start_current_monitor(){
 	*/
 	current_monitor.current(CURRENT_DETECT_PIN, CURRENT_CALIBRATION_FACTOR);
 
-	current_timer = timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_current_draw);
+	timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_current_draw);
 }
 
 
@@ -927,4 +915,41 @@ void transition_lamp(){
 		write_lamp_level(new_output);
 		timer.setTimeout(transition_time, transition_lamp);
 	}
+}
+
+
+/* Bluetooth Scanner */
+void start_bluetooth_scanner(){
+	/** Start the bluetooth scanner
+	* Initialise the bluetooth module in AP -> Master mode to scan for passing devices.
+	* Inquiry time is configurable and the results can be filtered by BT class.
+	*/
+
+	// Put BT module into master mode for scanning
+	// Set up regular scanning intervals
+
+}
+
+
+void start_bluetooth_scan(){
+	/** Initiliase a bluetooth device scan
+	* Scan for nearby bluetooth networks.
+	* The module will produce a list of devices when the specified scan duration has elapsed.
+	*/
+
+	// Start the scan
+	// Create a callback to grab the list when the module is finished scanning
+
+}
+
+
+void check_bluetooth_scan(char* device_list){
+	/** Grab the deteced device list from the bluetooth module
+	* The scan yields the BT address and network name.
+	* @param device_list Buffer to hold list of detected devices
+	*/
+
+	// Get the device list
+	// Break the list down
+	// Send the list to the Yun
 }

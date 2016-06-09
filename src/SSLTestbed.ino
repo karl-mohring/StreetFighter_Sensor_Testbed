@@ -11,16 +11,16 @@
 #include "Adafruit_MLX90614.h"
 #include "LIDARduino.h"
 #include "ProgmemString.h"
-#include "StraightBuffer.h"
 #include "Logging.h"
 #include "SimpleTimer.h"
 
 #include "config.h"
 
 // XBee - in Transparent (Serial bridge) mode
-byte _xbee_buffer[XBEE_BUFFER_SIZE];
-StraightBuffer xbee_buffer(_xbee_buffer, XBEE_BUFFER_SIZE);
 SoftwareSerial xbee_bridge(COMM_1_RX, COMM_1_TX);
+
+// Bluetooth module
+SoftwareSerial bluetooth(COMM_2_RX, COMM_2_TX);
 
 // Traffic Sensors
 static int successive_sonar_detections = 0;
@@ -39,7 +39,7 @@ EnergyMonitor current_monitor;
 bool lamp_control_enabled = false;
 
 // JSON serialiser - should be enclosed in function scope, but dynamic memory allocation scares me
-StaticJsonBuffer<300> print_buffer;
+StaticJsonBuffer<COMM_BUFFER_SIZE> print_buffer;
 JsonObject& entry = print_buffer.createObject();
 
 // Timers
@@ -143,6 +143,7 @@ void start_xbee(){
 	*/
 	xbee_bridge.begin(XBEE_BAUD);
 }
+
 
 /* Printing */
 void start_sensors(){
@@ -311,7 +312,7 @@ int get_sonar_range(){
 	*/
 
 	// The time of flight for the entire pulse, including the transmitted and reflected wave.
-	long raw_time_of_flight = pulseIn(SONAR_PIN, HIGH, CHECK_RANGE_INTERVAL*1000);
+	long raw_time_of_flight = pulseIn(SONAR_PIN, HIGH, long(CHECK_RANGE_INTERVAL)*1000);
 
 	// Ref: https://en.wikipedia.org/wiki/Speed_of_sound#Practical_formula_for_dry_air
 	// Humidity does affect the speed of sound in air, but only slightly
@@ -925,9 +926,23 @@ void start_bluetooth_scanner(){
 	* Inquiry time is configurable and the results can be filtered by BT class.
 	*/
 
-	// Put BT module into master mode for scanning
-	// Set up regular scanning intervals
+    Log.Debug(P("Starting Bluetooth at %d baud"), BLUETOOTH_BAUD);
+    bluetooth.begin(BLUETOOTH_BAUD);
+    bluetooth.listen();
 
+	// Put BT module into master mode for scanning
+    Log.Debug(P("Entering config..."));
+    bluetooth.write(P("$$$"));
+    bluetooth.flush();
+    Log.Debug(P("Response: %s\n"), bluetooth.readString().c_str());
+
+    Log.Debug(P("Setting master mode..."));
+    bluetooth.write(P("SM,1\n"));
+    bluetooth.flush();
+    Log.Debug(P("Response: %s\n"), bluetooth.readString().c_str());
+
+	// Set up regular scanning intervals
+    timer.setInterval(BLUETOOTH_SCAN_INTERVAL, start_bluetooth_scan);
 }
 
 
@@ -938,18 +953,31 @@ void start_bluetooth_scan(){
 	*/
 
 	// Start the scan
+    Log.Debug(P("Starting scan"));
+    bluetooth.write(P("I,5\n"));
+    bluetooth.flush();
+    Log.Debug(P("Response: %s"), bluetooth.readString().c_str());
+
 	// Create a callback to grab the list when the module is finished scanning
+    timer.setTimeout(BLUETOOTH_SCAN_TIME_MS + 1000, check_bluetooth_scan);
 
 }
 
 
-void check_bluetooth_scan(char* device_list){
+void check_bluetooth_scan(){
 	/** Grab the deteced device list from the bluetooth module
 	* The scan yields the BT address and network name.
 	* @param device_list Buffer to hold list of detected devices
 	*/
 
-	// Get the device list
-	// Break the list down
-	// Send the list to the Yun
+	char buffer[COMM_BUFFER_SIZE];
+	bluetooth.readBytes(buffer, COMM_BUFFER_SIZE);
+    Log.Debug(P("Response: %s"), bluetooth.readString().c_str());
+
+	if (Log.getLevel() > LOG_LEVEL_NOOUTPUT){
+		USE_SERIAL.print(PACKET_START);
+		USE_SERIAL.print(buffer);
+		USE_SERIAL.println(PACKET_END);
+		USE_SERIAL.flush();
+	}
 }

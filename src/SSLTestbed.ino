@@ -58,12 +58,24 @@ void setup(){
 	data.version = SSL_TESTBED_VERSION;
 	lamp.control_enabled = false;
 
-	start_yun_serial();
+	//start_yun_serial();
+	Log.Init(LOGGER_LEVEL, SERIAL_BAUD);
 	Log.Info(P("Traffic Counter - ver %d"), SSL_TESTBED_VERSION);
 
 	start_rtc();
-	enable_lamp_control();
-	start_xbee();
+
+	if (LAMP_CONTROL_ENABLED) {
+		enable_lamp_control();
+	}
+
+	if (XBEE_ENABLED) {
+		start_xbee();
+	}
+
+	if (BLUETOOTH_ENABLED) {
+		start_bluetooth_scanner();
+	}
+
 	start_sensors();
 }
 
@@ -151,18 +163,43 @@ void start_sensors(){
 	* Enable and configure the sensor suite for reading.
 	* A timer is started to regularly print sensor data
 	*/
+
 	// Traffic
-	start_sonar();
-	start_lidar();
-	start_pir();
+	if (SONAR_ENABLED){
+		start_sonar();
+	}
+
+	if (LIDAR_ENABLED) {
+		start_lidar();
+	}
+
+	if (PIR_ENABLED) {
+		start_pir();
+	}
+
 
 	// Environment
-	start_air_temperature();
-	start_road_temperature();
-	start_case_temperature();
-	start_humidity();
-	start_illuminance();
-	start_noise_monitoring();
+	if (AIR_TEMPERATURE_ENABLED) {
+		start_air_temperature();
+	}
+
+	if (ROAD_TEMPERATURE_ENABLED) {
+		start_road_temperature();
+		start_case_temperature();
+	}
+
+	if (HUMIDITY_ENABLED) {
+		start_humidity();
+	}
+
+	if (ILLUMINANCE_ENABLED) {
+		start_illuminance();
+	}
+
+	if (MICROPHONE_ENABLED) {
+		start_noise_monitoring();
+	}
+
 
 	// Start timer for regular entry transmission
 	timer.setInterval(PRINT_INTERVAL, print_regular_entry);
@@ -236,11 +273,12 @@ void print_json_string(){
 		USE_SERIAL.flush();
 	}
 
-	// Push the JSON string to XBee as well
-	xbee_bridge.print(PACKET_START);
-	entry.printTo(xbee_bridge);
-	xbee_bridge.print(PACKET_END);
-
+	if (XBEE_ENABLED) {
+		// Push the JSON string to XBee as well
+		xbee_bridge.print(PACKET_START);
+		entry.printTo(xbee_bridge);
+		xbee_bridge.print(PACKET_END);
+	}
 }
 
 
@@ -969,14 +1007,9 @@ void check_bluetooth_scan(){
 	* The scan yields the BT address and network name.
 	* @param device_list Buffer to hold list of detected devices
 	*/
-
-	char buffer[COMM_BUFFER_SIZE];
-	bluetooth.readBytes(buffer, COMM_BUFFER_SIZE);
-    Log.Debug(P("Response: %s"), bluetooth.readString().c_str());
-
 	if (Log.getLevel() > LOG_LEVEL_NOOUTPUT){
 		USE_SERIAL.print(PACKET_START);
-		USE_SERIAL.print(buffer);
+		USE_SERIAL.print(bluetooth.readString().c_str());
 		USE_SERIAL.println(PACKET_END);
 		USE_SERIAL.flush();
 	}

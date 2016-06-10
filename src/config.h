@@ -5,18 +5,35 @@
 // Unit
 const int SSL_TESTBED_VERSION = 9;
 const byte UNIT_ID = 1;
-const char UNIT_NAME[] = "Flauros";
+const char UNIT_NAME[] = "Pixie";
 
 // Use Serial for debug; Serial1 for normal operation
 #define USE_SERIAL Serial1
+const int LOGGER_LEVEL = LOG_LEVEL_DEBUG;
+
+const bool BLUETOOTH_ENABLED = true;
+const bool XBEE_ENABLED = false;
+
+const bool CURRENT_MONITOR_ENABLED = false;
+const bool LAMP_CONTROL_ENABLED = false;
+
+const bool AIR_TEMPERATURE_ENABLED = false;
+const bool ROAD_TEMPERATURE_ENABLED = false;
+const bool HUMIDITY_ENABLED = false;
+const bool ILLUMINANCE_ENABLED = false;
+const bool MICROPHONE_ENABLED = false;
+
+const bool PIR_ENABLED = false;
+const bool SONAR_ENABLED = false;
+const bool LIDAR_ENABLED = false;
 
 
 ///////////////////////////////////////////////////////////////////////////////
 // Temperature Probe
 const byte TEMPERATURE_RESOLUTION = 12; //12-bit temperature resolution
 enum TEMPERATURE_SENSORS{
-    TMP36 = 0,
-    DS18B20 = 1
+    TMP36 = 1,
+    DS18B20 = 2
 };
 const byte TEMPERATURE_SENSOR = TMP36;
 const float AREF_VOLTAGE = 5.0;
@@ -29,7 +46,6 @@ const long YUN_LINUX_BAUD_RATE = 250000;
 const int COMM_BUFFER_SIZE = 300;
 
 const long SERIAL_BAUD = 57600;
-const int LOGGER_LEVEL = LOG_LEVEL_INFOS;
 
 // XBee Socket 1
 const long XBEE_BAUD = 9600;
@@ -41,8 +57,7 @@ const byte XBEE_1_MODE = UART;
 
 // XBee Socket 2 - Bluetooth module
 const long BLUETOOTH_BAUD = 9600;
-const bool XBEE_2_ENABLED = false;
-const int BLUETOOTH_SCAN_TIME = 5;  //
+const int BLUETOOTH_SCAN_TIME = 5;  // Bluetooth scan duration in seconds
 
 
 ///////////////////////////////////////////////////////////////////////////////

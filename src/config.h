@@ -11,7 +11,9 @@ const char UNIT_NAME[] = "Pixie";
 #define USE_SERIAL Serial1
 const int LOGGER_LEVEL = LOG_LEVEL_DEBUG;
 
-const bool BLUETOOTH_ENABLED = true;
+const bool REAL_TIME_CLOCK_ENABLED = true;
+
+const bool BLUETOOTH_ENABLED = false;
 const bool XBEE_ENABLED = false;
 
 const bool CURRENT_MONITOR_ENABLED = false;
@@ -174,7 +176,7 @@ struct SensorEntry{
     int illuminance;
     float current_draw;
     int noise_level;
-    long timestamp;
+    const char* timestamp;
 };
 
 struct LampControl{
@@ -236,6 +238,7 @@ float get_current_draw();
 void start_rtc();
 void update_timestamp();
 long get_timestamp();
+void get_datetime(char* buffer);
 void enable_lamp_control();
 void activate_lamp();
 void update_lamp_timeout();

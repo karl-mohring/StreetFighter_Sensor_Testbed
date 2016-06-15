@@ -34,7 +34,7 @@ OneWire onewire(TEMPERATURE_PIN);
 DallasTemperature air_temperature_sensor(&onewire);
 
 // Misc
-RTC_DS1307 rtc;
+RTC_DS3231 rtc;
 EnergyMonitor current_monitor;
 bool lamp_control_enabled = false;
 
@@ -62,7 +62,9 @@ void setup(){
 	Log.Init(LOGGER_LEVEL, SERIAL_BAUD);
 	Log.Info(P("Traffic Counter - ver %d"), SSL_TESTBED_VERSION);
 
-	start_rtc();
+	if (REAL_TIME_CLOCK_ENABLED) {
+		start_rtc();
+	}
 
 	if (LAMP_CONTROL_ENABLED) {
 		enable_lamp_control();
@@ -237,7 +239,10 @@ void print_data(){
 	/**
 	* Print the current traffic counts and info to Serial
 	*/
-	update_timestamp();
+	if (REAL_TIME_CLOCK_ENABLED) {
+		update_timestamp();
+	}
+
 	print_json_string();
 }
 
@@ -825,7 +830,11 @@ void update_timestamp(){
 	/**
 	* Read the timestamp into the current entry
 	*/
-	data.timestamp = get_timestamp();
+	char buffer[20];
+
+	//data.timestamp = get_timestamp();
+	get_datetime(buffer);
+	data.timestamp = (char*)buffer;
 }
 
 
@@ -836,6 +845,24 @@ long get_timestamp(){
 	*/
 	DateTime now = rtc.now();
 	return now.secondstime();
+}
+
+
+void get_datetime(char* buffer){
+	/** Get the datetime in string format
+	* DateTime follows the standard ISO format ("YYYY-MM-DD hh:mm:ss")
+	* @param buffer Character buffer to write datetime to; Must be at least 20 char wide.
+	*/
+	DateTime now = rtc.now();
+
+	// Get the DateTime into the standard, readable format
+	sprintf(buffer, P("%04d-%02d-%02d %02d:%02d:%02d"),
+	 now.year(),
+	 now.month(),
+	 now.day(),
+	 now.hour(),
+	 now.minute(),
+	 now.second());
 }
 
 

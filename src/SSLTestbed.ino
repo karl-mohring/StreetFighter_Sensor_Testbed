@@ -42,6 +42,9 @@ bool lamp_control_enabled = false;
 StaticJsonBuffer<COMM_BUFFER_SIZE> print_buffer;
 JsonObject& entry = print_buffer.createObject();
 
+StaticJsonBuffer<200> blue_buffer;
+JsonObject& scan_entry = blue_buffer.createObject();
+
 // Timers
 SimpleTimer timer;
 int pir_timer = -1;
@@ -58,8 +61,7 @@ void setup(){
 	data.version = SSL_TESTBED_VERSION;
 	lamp.control_enabled = false;
 
-	//start_yun_serial();
-	Log.Init(LOGGER_LEVEL, SERIAL_BAUD);
+	start_yun_serial();
 	Log.Info(P("Traffic Counter - ver %d"), SSL_TESTBED_VERSION);
 
 	if (REAL_TIME_CLOCK_ENABLED) {
@@ -74,11 +76,11 @@ void setup(){
 		start_xbee();
 	}
 
+	start_sensors();
+
 	if (BLUETOOTH_ENABLED) {
 		start_bluetooth_scanner();
 	}
-
-	start_sensors();
 }
 
 
@@ -166,20 +168,6 @@ void start_sensors(){
 	* A timer is started to regularly print sensor data
 	*/
 
-	// Traffic
-	if (SONAR_ENABLED){
-		start_sonar();
-	}
-
-	if (LIDAR_ENABLED) {
-		start_lidar();
-	}
-
-	if (PIR_ENABLED) {
-		start_pir();
-	}
-
-
 	// Environment
 	if (AIR_TEMPERATURE_ENABLED) {
 		start_air_temperature();
@@ -200,6 +188,18 @@ void start_sensors(){
 
 	if (MICROPHONE_ENABLED) {
 		start_noise_monitoring();
+	}
+
+	if (SONAR_ENABLED){
+		start_sonar();
+	}
+
+	if (LIDAR_ENABLED) {
+		start_lidar();
+	}
+
+	if (PIR_ENABLED) {
+		start_pir();
 	}
 
 
@@ -253,23 +253,23 @@ void print_json_string(){
 	* @return JSON-formatted string containing selected data
 	*/
 
-	entry[P("version")] = data.version;
-	entry[P("id")] = data.id;
-	entry[P("event_flag")] = data.event_flag;
-	entry[P("count_pir")] = data.pir_count;
-	entry[P("pir_status")] = data.last_pir_status;
-	entry[P("lidar_count")] = data.lidar_count;
-	entry[P("lidar_range")] = data.lidar_range;
-	entry[P("uvd_count")] = data.sonar_count;
-	entry[P("uvd_range")] = data.sonar_range;
-	entry[P("air_temp")] = data.air_temperature;
-	entry[P("case_temp")] = data.case_temperature;
-	entry[P("road_temp")] = data.road_temperature;
-	entry[P("humidity")] = data.humidity;
-	entry[P("illuminance")] = data.illuminance;
-	entry[P("current_draw")] = data.current_draw;
-	entry[P("noise")] = data.noise_level;
-	entry[P("timestamp")] = data.timestamp;
+	entry["version"] = data.version;
+	entry["id"] = data.id;
+	entry["event_flag"] = data.event_flag;
+	entry["count_pir"] = data.pir_count;
+	entry["pir_status"] = data.last_pir_status;
+	entry["lidar_count"] = data.lidar_count;
+	entry["lidar_range"] = data.lidar_range;
+	entry["uvd_count"] = data.sonar_count;
+	entry["uvd_range"] = data.sonar_range;
+	entry["air_temp"] = data.air_temperature;
+	entry["case_temp"] = data.case_temperature;
+	entry["road_temp"] = data.road_temperature;
+	entry["humidity"] = data.humidity;
+	entry["illuminance"] = data.illuminance;
+	entry["current_draw"] = data.current_draw;
+	entry["noise"] = data.noise_level;
+	entry["timestamp"] = data.timestamp;
 
 	if (Log.getLevel() > LOG_LEVEL_NOOUTPUT){
 		USE_SERIAL.print(PACKET_START);
@@ -354,8 +354,19 @@ int get_sonar_range(){
 	* :return: Distance to object in cm
 	*/
 
-	// The time of flight for the entire pulse, including the transmitted and reflected wave.
-	long raw_time_of_flight = pulseIn(SONAR_PIN, HIGH, long(CHECK_RANGE_INTERVAL)*1000);
+	long raw_time_of_flight = 0;
+
+	if (SONAR_READ_METHOD == PULSE){
+		// The time of flight for the entire pulse, including the transmitted and reflected wave.
+		raw_time_of_flight = pulseIn(SONAR_PIN, HIGH, long(CHECK_RANGE_INTERVAL)*2000);
+	}
+
+	else if (SONAR_READ_METHOD == ANALOG) {
+		// Time of flight = uncompensated distance * 58us
+		// Uncompensated distance = analog read * 2cm
+		raw_time_of_flight = analogRead(SONAR_PIN) * 58 * 2;
+	}
+
 
 	// Ref: https://en.wikipedia.org/wiki/Speed_of_sound#Practical_formula_for_dry_air
 	// Humidity does affect the speed of sound in air, but only slightly
@@ -665,11 +676,11 @@ void update_case_temperature(){
 	/**
 	* Read the road temperature into the entry
 	*/
-	data.case_temperature = getCaseTemperature();
+	data.case_temperature = get_case_temperature();
 }
 
 
-float getCaseTemperature(){
+float get_case_temperature(){
 	/**
 	* Read the internal case temperature from the non-contact thermometer
 	* :return: Case temperature in deg C/
@@ -823,6 +834,7 @@ void start_rtc(){
 	* Start up the real-time clock
 	*/
 	rtc.begin();
+	update_timestamp();
 }
 
 
@@ -830,11 +842,10 @@ void update_timestamp(){
 	/**
 	* Read the timestamp into the current entry
 	*/
-	char buffer[20];
 
 	//data.timestamp = get_timestamp();
-	get_datetime(buffer);
-	data.timestamp = (char*)buffer;
+	get_datetime(data.timestamp);
+	Log.Debug(P("Time: %s"), data.timestamp);
 }
 
 
@@ -1020,11 +1031,16 @@ void start_bluetooth_scan(){
 	// Start the scan
     Log.Debug(P("Starting scan"));
     bluetooth.write(P("I,5\n"));
+	delay(100);
     bluetooth.flush();
-    Log.Debug(P("Response: %s"), bluetooth.readString().c_str());
+
+	while (bluetooth.available()) {
+		Log.Debug(P("Response: %s"), bluetooth.readString().c_str());
+	}
+
 
 	// Create a callback to grab the list when the module is finished scanning
-    timer.setTimeout(BLUETOOTH_SCAN_TIME_MS + 1000, check_bluetooth_scan);
+    timer.setTimeout(BLUETOOTH_SCAN_TIME_MS + 2000, check_bluetooth_scan);
 
 }
 
@@ -1034,9 +1050,17 @@ void check_bluetooth_scan(){
 	* The scan yields the BT address and network name.
 	* @param device_list Buffer to hold list of detected devices
 	*/
+
+	bluetooth.listen();
+	char buffer[180];
+	sprintf(buffer, "%s", bluetooth.readString().c_str());
+
+	scan_entry["id"] = "Blue";
+	scan_entry["data"] = buffer;
+
 	if (Log.getLevel() > LOG_LEVEL_NOOUTPUT){
 		USE_SERIAL.print(PACKET_START);
-		USE_SERIAL.print(bluetooth.readString().c_str());
+		scan_entry.printTo(USE_SERIAL);
 		USE_SERIAL.println(PACKET_END);
 		USE_SERIAL.flush();
 	}

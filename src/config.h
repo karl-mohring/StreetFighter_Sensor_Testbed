@@ -8,24 +8,24 @@ const byte UNIT_ID = 1;
 const char UNIT_NAME[] = "Pixie";
 
 // Use Serial for debug; Serial1 for normal operation
-#define USE_SERIAL Serial1
-const int LOGGER_LEVEL = LOG_LEVEL_DEBUG;
+#define USE_SERIAL Serial
+const int LOGGER_LEVEL = LOG_LEVEL_VERBOSE;
 
 const bool REAL_TIME_CLOCK_ENABLED = true;
 
-const bool BLUETOOTH_ENABLED = false;
-const bool XBEE_ENABLED = false;
+const bool BLUETOOTH_ENABLED = true;
+const bool XBEE_ENABLED = true;
 
-const bool CURRENT_MONITOR_ENABLED = false;
-const bool LAMP_CONTROL_ENABLED = false;
+const bool CURRENT_MONITOR_ENABLED = true;
+const bool LAMP_CONTROL_ENABLED = true;
 
-const bool AIR_TEMPERATURE_ENABLED = false;
-const bool ROAD_TEMPERATURE_ENABLED = false;
-const bool HUMIDITY_ENABLED = false;
-const bool ILLUMINANCE_ENABLED = false;
-const bool MICROPHONE_ENABLED = false;
+const bool AIR_TEMPERATURE_ENABLED = true;
+const bool ROAD_TEMPERATURE_ENABLED = true;
+const bool HUMIDITY_ENABLED = true;
+const bool ILLUMINANCE_ENABLED = true;
+const bool MICROPHONE_ENABLED = true;
 
-const bool PIR_ENABLED = false;
+const bool PIR_ENABLED = true;
 const bool SONAR_ENABLED = false;
 const bool LIDAR_ENABLED = false;
 
@@ -37,7 +37,7 @@ enum TEMPERATURE_SENSORS{
     TMP36 = 1,
     DS18B20 = 2
 };
-const byte TEMPERATURE_SENSOR = TMP36;
+const byte TEMPERATURE_SENSOR = DS18B20;
 const float AREF_VOLTAGE = 5.0;
 
 
@@ -109,14 +109,24 @@ const long BLUETOOTH_SCAN_INTERVAL = 10000; // Time between bluetooth scans in m
 
 
 ///////////////////////////////////////////////////////////////////////////////
+// Real-time Clock
+
+const int DATETIME_WIDTH = 20;
+
+///////////////////////////////////////////////////////////////////////////////
 // Sonar/Lidar
 const byte MIN_BASELINE_READS = 20; // Minimum number of reads needed to establish a baseline
 const byte MAX_BASELINE_READS = 30; // Maximum number of reads to establishe a baseline
 const int BASELINE_READ_INTERVAL = 200; // Time between range baseline calibration reads in milliseconds
 const int BASELINE_VARIANCE_THRESHOLD = 20; // Maximum acceptable range sensor baseline error in cm.
-const byte MIN_SUCCESSIVE_SONAR_READS = 2;  // Number of consecutive sonar reads that will result in a 'detection'
+const byte MIN_SUCCESSIVE_SONAR_READS = 1;  // Number of consecutive sonar reads that will result in a 'detection'
 const byte MIN_SUCCESSIVE_LIDAR_READS = 0;  // Number of consecutive lidar reads that will result in a 'detection'
 
+enum SONAR_READ_METHODS{
+    PULSE = 1,
+    ANALOG = 2
+};
+const int SONAR_READ_METHOD = ANALOG;
 
 ///////////////////////////////////////////////////////////////////////////////
 // PIR
@@ -176,7 +186,7 @@ struct SensorEntry{
     int illuminance;
     float current_draw;
     int noise_level;
-    const char* timestamp;
+    char timestamp[DATETIME_WIDTH];
 };
 
 struct LampControl{
@@ -222,7 +232,7 @@ void update_road_temperature();
 float get_road_temperature();
 void start_case_temperature();
 void update_case_temperature();
-float getCaseTemperature();
+float get_case_temperature();
 void start_humidity();
 void update_humidity();
 float get_humidity(float air_temperature);

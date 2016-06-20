@@ -42,8 +42,7 @@ bool lamp_control_enabled = false;
 StaticJsonBuffer<COMM_BUFFER_SIZE> print_buffer;
 JsonObject& entry = print_buffer.createObject();
 
-StaticJsonBuffer<200> blue_buffer;
-JsonObject& scan_entry = blue_buffer.createObject();
+char buffer[180];
 
 // Timers
 SimpleTimer timer;
@@ -61,7 +60,8 @@ void setup(){
 	data.version = SSL_TESTBED_VERSION;
 	lamp.control_enabled = false;
 
-	start_yun_serial();
+	Log.Init(LOG_LEVEL_VERBOSE, SERIAL_BAUD);
+	//start_yun_serial();
 	Log.Info(P("Traffic Counter - ver %d"), SSL_TESTBED_VERSION);
 
 	if (REAL_TIME_CLOCK_ENABLED) {
@@ -1031,16 +1031,16 @@ void start_bluetooth_scan(){
 	// Start the scan
     Log.Debug(P("Starting scan"));
     bluetooth.write(P("I,5\n"));
-	delay(100);
     bluetooth.flush();
 
+	delay(100);
 	while (bluetooth.available()) {
 		Log.Debug(P("Response: %s"), bluetooth.readString().c_str());
 	}
 
 
 	// Create a callback to grab the list when the module is finished scanning
-    timer.setTimeout(BLUETOOTH_SCAN_TIME_MS + 2000, check_bluetooth_scan);
+    timer.setTimeout(BLUETOOTH_SCAN_TIME_MS + 2500, check_bluetooth_scan);
 
 }
 
@@ -1052,16 +1052,13 @@ void check_bluetooth_scan(){
 	*/
 
 	bluetooth.listen();
-	char buffer[180];
-	sprintf(buffer, "%s", bluetooth.readString().c_str());
 
-	scan_entry["id"] = "Blue";
-	scan_entry["data"] = buffer;
+
+	const char BLUETOOTH_HEADER[] = "\"id\":\"Blue\",\"data\":";
+	sprintf(buffer, "%c{%s\"%s\"}%c", PACKET_START, BLUETOOTH_HEADER, bluetooth.readString().c_str(), PACKET_END);
 
 	if (Log.getLevel() > LOG_LEVEL_NOOUTPUT){
-		USE_SERIAL.print(PACKET_START);
-		scan_entry.printTo(USE_SERIAL);
-		USE_SERIAL.println(PACKET_END);
+		USE_SERIAL.println(buffer);
 		USE_SERIAL.flush();
 	}
 }

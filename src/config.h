@@ -11,22 +11,22 @@ const char UNIT_NAME[] = "Pixie";
 #define USE_SERIAL Serial
 const int LOGGER_LEVEL = LOG_LEVEL_VERBOSE;
 
-const bool REAL_TIME_CLOCK_ENABLED = true;
+const bool REAL_TIME_CLOCK_ENABLED = false;
 
-const bool BLUETOOTH_ENABLED = true;
-const bool XBEE_ENABLED = true;
+const bool BLUETOOTH_ENABLED = false;
+const bool XBEE_ENABLED = false;
 
-const bool CURRENT_MONITOR_ENABLED = true;
-const bool LAMP_CONTROL_ENABLED = true;
+const bool CURRENT_MONITOR_ENABLED = false;
+const bool LAMP_CONTROL_ENABLED = false;
 
-const bool AIR_TEMPERATURE_ENABLED = true;
+const bool AIR_TEMPERATURE_ENABLED = false;
 const bool ROAD_TEMPERATURE_ENABLED = true;
 const bool HUMIDITY_ENABLED = true;
 const bool ILLUMINANCE_ENABLED = true;
 const bool MICROPHONE_ENABLED = true;
 
-const bool PIR_ENABLED = true;
-const bool SONAR_ENABLED = false;
+    const bool PIR_ENABLED = true;
+const bool SONAR_ENABLED = true;
 const bool LIDAR_ENABLED = false;
 
 
@@ -59,7 +59,6 @@ const byte XBEE_1_MODE = UART;
 
 // XBee Socket 2 - Bluetooth module
 const long BLUETOOTH_BAUD = 9600;
-const int BLUETOOTH_SCAN_TIME = 5;  // Bluetooth scan duration in seconds
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -100,12 +99,14 @@ const int RANGE_DETECT_THRESHOLD = 70; // Minimum threshold for range detection 
 const int LIDAR_CHECK_RANGE_INTERVAL = 100;
 const int LIDAR_DETECT_THRESHOLD = 50;
 
-const long PRINT_INTERVAL = 60000;
+const long PRINT_INTERVAL = 10000;
 const int CHECK_ENVIRONMENTAL_SENSOR_INTERVAL = PRINT_INTERVAL/3;
 const long XBEE_TRANSMIT_INTERVAL = PRINT_INTERVAL; // Time between XBee transmissions
 
+const int BLUETOOTH_SCAN_TIME = 5;  // Bluetooth scan duration in seconds
 const long BLUETOOTH_SCAN_TIME_MS = BLUETOOTH_SCAN_TIME * 1000; // Length of a bluetooth scan in milliseconds
 const long BLUETOOTH_SCAN_INTERVAL = 10000; // Time between bluetooth scans in milliseconds
+const long BLUETOOTH_SERIAL_WAIT = 1000;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -127,6 +128,12 @@ enum SONAR_READ_METHODS{
     ANALOG = 2
 };
 const int SONAR_READ_METHOD = ANALOG;
+
+enum SONAR_TYPES{
+    EZ = 1,
+    WR = 2
+};
+const int SONAR_MODEL = EZ;
 
 ///////////////////////////////////////////////////////////////////////////////
 // PIR

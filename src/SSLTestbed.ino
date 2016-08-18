@@ -38,11 +38,11 @@ RTC_DS3231 rtc;
 EnergyMonitor current_monitor;
 bool lamp_control_enabled = false;
 
+char buffer[200];
+
 // JSON serialiser - should be enclosed in function scope, but dynamic memory allocation scares me
 StaticJsonBuffer<COMM_BUFFER_SIZE> print_buffer;
 JsonObject& entry = print_buffer.createObject();
-
-char buffer[180];
 
 // Timers
 SimpleTimer timer;
@@ -51,6 +51,7 @@ int pir_timer = -1;
 SensorEntry data;
 LampControl lamp;
 
+////////////////////////////////////////////////////////////////////////////////
 /* Arduino main functions */
 void setup(){
 	/**
@@ -60,8 +61,8 @@ void setup(){
 	data.version = SSL_TESTBED_VERSION;
 	lamp.control_enabled = false;
 
-	Log.Init(LOG_LEVEL_VERBOSE, SERIAL_BAUD);
 	//start_yun_serial();
+	Log.Init(LOG_LEVEL_VERBOSE, 57600);
 	Log.Info(P("Traffic Counter - ver %d"), SSL_TESTBED_VERSION);
 
 	if (REAL_TIME_CLOCK_ENABLED) {
@@ -92,6 +93,7 @@ void loop(){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 /* Yun Serial */
 void start_yun_serial(){
 	/**
@@ -149,6 +151,7 @@ void boot_status_change_ISR(){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 /* XBee Comms */
 void start_xbee(){
 	/**
@@ -161,6 +164,7 @@ void start_xbee(){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 /* Printing */
 void start_sensors(){
 	/**
@@ -287,6 +291,7 @@ void print_json_string(){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 /* Sonar */
 void start_sonar(){
 	/**
@@ -353,28 +358,33 @@ int get_sonar_range(){
 	* Get the range in cm from the ultrasonic rangefinder
 	* :return: Distance to object in cm
 	*/
-
-	long raw_time_of_flight = 0;
+ 	long distance;
 
 	if (SONAR_READ_METHOD == PULSE){
 		// The time of flight for the entire pulse, including the transmitted and reflected wave.
-		raw_time_of_flight = pulseIn(SONAR_PIN, HIGH, long(CHECK_RANGE_INTERVAL)*2000);
+		unsigned long raw_time_of_flight = pulseIn(SONAR_PIN, HIGH, long(CHECK_RANGE_INTERVAL)*2000);
+
+		// Ref: https://en.wikipedia.org/wiki/Speed_of_sound#Practical_formula_for_dry_air
+		// Humidity does affect the speed of sound in air, but only slightly
+		float temperature = 25;
+		if (AIR_TEMPERATURE_ENABLED){
+			temperature = data.air_temperature;
+		}
+		distance = (raw_time_of_flight * (331.3 + 0.606 * temperature)) / 20000;
+
 	}
 
 	else if (SONAR_READ_METHOD == ANALOG) {
 		// Time of flight = uncompensated distance * 58us
 		// Uncompensated distance = analog read * 2cm
-		raw_time_of_flight = analogRead(SONAR_PIN) * 58 * 2;
+		distance = analogRead(SONAR_PIN);
+		if (SONAR_MODEL == WR){
+			distance *= 2;
+		}
 	}
 
-
-	// Ref: https://en.wikipedia.org/wiki/Speed_of_sound#Practical_formula_for_dry_air
-	// Humidity does affect the speed of sound in air, but only slightly
-	long compensated_distance = (raw_time_of_flight * (331.3 + 0.606 * data.air_temperature)) / 20000;
-
-	Log.Verbose(P("Ultrasonic Range: %d cm"), compensated_distance);
-
-	return int(compensated_distance);
+	Log.Verbose(P("Ultrasonic Range: %d cm"), distance);
+	return int(distance);
 }
 
 
@@ -411,6 +421,7 @@ void update_sonar(){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 /* Lidar */
 void start_lidar(){
 	/**
@@ -518,6 +529,7 @@ void update_lidar(){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 /* PIR */
 void start_pir(){
 	/**
@@ -584,6 +596,7 @@ void resume_pir_detection(){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 /* Air Temperature */
 void start_air_temperature(){
 	/**
@@ -631,6 +644,7 @@ float get_air_temperature(){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 /* Road Temperature */
 void start_road_temperature(){
 	/**
@@ -660,6 +674,7 @@ float get_road_temperature(){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 /* Case Temperature */
 void start_case_temperature(){
 	/**
@@ -689,6 +704,7 @@ float get_case_temperature(){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 /* Humidity */
 void start_humidity(){
 	/**
@@ -706,7 +722,15 @@ void update_humidity(){
 	* Timer callback function
 	* Read the humidity into the current entry
 	*/
-	data.humidity = get_humidity(get_air_temperature());
+
+	float temperature = 0;
+	if (AIR_TEMPERATURE_ENABLED){
+		temperature = data.air_temperature;
+	}else{
+		temperature = 25.0;
+	}
+
+	data.humidity = get_humidity(temperature);
 }
 
 
@@ -727,6 +751,7 @@ float get_humidity(float air_temperature){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 /* Illuminance */
 void start_illuminance(){
 	/**
@@ -760,6 +785,7 @@ int get_illuminance(){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 /* Noise */
 void start_noise_monitoring(){
 	/**
@@ -800,6 +826,7 @@ int get_noise_level(int sample_period){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 /* Current */
 void start_current_monitor(){
 	/**
@@ -828,6 +855,7 @@ float get_current_draw(){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 /* RTC */
 void start_rtc(){
 	/**
@@ -877,6 +905,7 @@ void get_datetime(char* buffer){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 /* Lamp control */
 void enable_lamp_control(){
 	/**
@@ -995,6 +1024,7 @@ void transition_lamp(){
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
 /* Bluetooth Scanner */
 void start_bluetooth_scanner(){
 	/** Start the bluetooth scanner
@@ -1033,11 +1063,7 @@ void start_bluetooth_scan(){
     bluetooth.write(P("I,5\n"));
     bluetooth.flush();
 
-	delay(100);
-	while (bluetooth.available()) {
-		Log.Debug(P("Response: %s"), bluetooth.readString().c_str());
-	}
-
+	Log.Debug(P("Response: %s"), bluetooth.readString().c_str());
 
 	// Create a callback to grab the list when the module is finished scanning
     timer.setTimeout(BLUETOOTH_SCAN_TIME_MS + 2500, check_bluetooth_scan);
@@ -1051,14 +1077,33 @@ void check_bluetooth_scan(){
 	* @param device_list Buffer to hold list of detected devices
 	*/
 
+	Log.Verbose("Reading bt response");
 	bluetooth.listen();
+
+	int i = 0;
+	bool done_reading = false;
+
+	while (!done_reading){
+		while (bluetooth.available()){
+			if (i < 200){
+				buffer[i++] = bluetooth.read();
+			}else{
+				i = 200 - 1;
+			}
+		}
+		delay(BLUETOOTH_SERIAL_WAIT);
+
+		if (!bluetooth.available()){
+			done_reading = true;
+			buffer[i] = '\0';
+		}
+	}
+
 
 
 	const char BLUETOOTH_HEADER[] = "\"id\":\"Blue\",\"data\":";
-	sprintf(buffer, "%c{%s\"%s\"}%c", PACKET_START, BLUETOOTH_HEADER, bluetooth.readString().c_str(), PACKET_END);
+	Log.Info("%c{%s\"%s\"}%c", PACKET_START, BLUETOOTH_HEADER, buffer, PACKET_END);
 
-	if (Log.getLevel() > LOG_LEVEL_NOOUTPUT){
-		USE_SERIAL.println(buffer);
-		USE_SERIAL.flush();
-	}
+
+	Log.Verbose("Finished response");
 }

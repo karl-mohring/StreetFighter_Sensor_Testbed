@@ -11,20 +11,24 @@ const char UNIT_NAME[] = "Pixie";
 #define USE_SERIAL Serial
 const int LOGGER_LEVEL = LOG_LEVEL_VERBOSE;
 
+// Misc
 const bool REAL_TIME_CLOCK_ENABLED = true;
+const bool CURRENT_MONITOR_ENABLED = false;
+const bool LAMP_CONTROL_ENABLED = false;
 
+// Comms
 const bool BLUETOOTH_ENABLED = true;
 const bool XBEE_ENABLED = true;
 
-const bool CURRENT_MONITOR_ENABLED = true;
-const bool LAMP_CONTROL_ENABLED = true;
+// Environmental
+const bool AIR_TEMPERATURE_ENABLED = false;
+const bool HUMIDITY_ENABLED = false;
+const bool ILLUMINANCE_ENABLED = false;
 
-const bool AIR_TEMPERATURE_ENABLED = true;
-const bool ROAD_TEMPERATURE_ENABLED = true;
-const bool HUMIDITY_ENABLED = true;
-const bool ILLUMINANCE_ENABLED = true;
-
+// Traffic
 const bool PIR_ENABLED = true;
+const bool LIDAR_ENABLED = true;
+const bool THERMO_FLOW_ENABLED = true;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Temperature Probe
@@ -129,14 +133,14 @@ enum PIR_TYPE{
 
 const byte NUM_PIR_SENSORS = 3;
 const byte PIR_PINS[NUM_PIR_SENSORS] = {WIDE_PIR_PIN, NARROW_PIR_PIN, WIDE_PIR_2_PIN};
-const byte PIR_TYPES[NUM_PIR_SENSOR] = {PIR_WIDE, PIR_NARROW, PIR_WIDE}
+const byte PIR_TYPES[NUM_PIR_SENSORS] = {PIR_WIDE, PIR_NARROW, PIR_WIDE};
 const bool PIR_ACTIVE_STATES[NUM_PIR_SENSORS] = {HIGH, HIGH, HIGH};
 const bool PIR_MUST_GO_LOW_BETWEEN_TRIGGERS = false;
-const int PIR_COOLDOWNS[NUM_PIR_SENSORS] = {5000, 2500, 5000};
+const unsigned long PIR_COOLDOWNS[NUM_PIR_SENSORS] = {5000, 2500, 5000};
 
 const int CHECK_MOTION_INTERVAL = 100;
 
-const int MOTION_INITIALISATION_TIME = 10000; // Time given for PIR sensor to calibrate in ms.
+const long MOTION_INITIALISATION_TIME = 10000; // Time given for PIR sensor to calibrate in ms.
 const byte MOTION_DETECTED = HIGH;
 const byte MOTION_INITIALISATION_INTERVALS = 5;
 
@@ -178,9 +182,6 @@ struct SensorEntry{
     long lidar_count;
     int lidar_range;
     int lidar_baseline;
-    long sonar_count;
-    int sonar_range;
-    int sonar_baseline;
     float air_temperature;
     float case_temperature;
     float road_temperature;
@@ -204,49 +205,58 @@ struct LampControl{
 // Function headers (for autocomplete)
 void start_yun_serial();
 void boot_status_change_ISR();
+
 void start_xbee();
 void prepare_xbee_packet();
 void transmit_packet();
 void send_xbee_packet();
+
 void start_sensors();
 void print_regular_entry();
 void trigger_traffic_event();
 void print_data();
 void print_json_string();
-void start_sonar();
-int get_sonar_baseline(int variance);
-int get_sonar_range();
-void update_sonar();
+
 void start_lidar();
 int get_lidar_baseline(int variance);
 int get_lidar_range();
 void update_lidar();
+
 void start_pir();
 void update_pir();
 void increment_pir_count(int sensor_num);
+
 void start_air_temperature();
 void update_air_temperature();
 float get_air_temperature();
+
 void start_road_temperature();
 void update_road_temperature();
 float get_road_temperature();
 void start_case_temperature();
 void update_case_temperature();
 float get_case_temperature();
+void start_thermal_flow();
+void get_frame();
+
 void start_humidity();
 void update_humidity();
 float get_humidity(float air_temperature);
+
 void start_illuminance();
 void update_illuminance();
 int get_illuminance();
+
 void start_current_monitor();
 void update_current_draw();
 float get_current_draw();
+
 void start_rtc();
 void update_timestamp();
 long get_timestamp();
 void get_datetime(char* buffer);
 void update_system_clock();
+
 void enable_lamp_control();
 void activate_lamp();
 void update_lamp_timeout();
@@ -254,6 +264,9 @@ void deactivate_lamp();
 void set_lamp_target(int level);
 void write_lamp_level(int level);
 void transition_lamp();
+
 void start_bluetooth_scanner();
 void start_bluetooth_scan();
-void check_bluetooth_scan();
+void start_bluetooth_read();
+void read_bluetooth_buffer();
+void stop_bluetooth_read();

@@ -6,9 +6,10 @@
 #include <RTClib.h>
 #include <Wire.h>
 #include <ArduinoJson.h>
+#include <LIDARduino.h>
+#include "MLX90621.h"
 
 #include "BH1750FVI.h"
-#include "Adafruit_MLX90614.h"
 #include "ProgmemString.h"
 #include "Logging.h"
 #include "SimpleTimer.h"
@@ -27,7 +28,7 @@ LIDAR_Lite_PWM lidar(LIDAR_TRIGGER_PIN, LIDAR_PWM_PIN);
 static int successive_lidar_detections = 0;
 
 // Environmental Sensors
-Adafruit_MLX90614 road_temperature_sensor;
+MLX90621 thermal_flow_sensor;
 BH1750FVI illuminance_sensor;
 OneWire onewire(TEMPERATURE_PIN);
 DallasTemperature air_temperature_sensor(&onewire);
@@ -52,7 +53,7 @@ SimpleTimer timer;
 // PIR variables
 bool cooldown_active[NUM_PIR_SENSORS];
 bool motion_status[NUM_PIR_SENSORS];
-bool motion_start_time[NUM_PIR_SENSORS];
+unsigned long motion_start_time[NUM_PIR_SENSORS];
 
 // Objects
 SensorEntry data;
@@ -183,8 +184,8 @@ void start_sensors() {
     start_air_temperature();
   }
 
-  if (ROAD_TEMPERATURE_ENABLED) {
-    start_road_temperature();
+  if (THERMO_FLOW_ENABLED) {
+    start_thermal_flow();
     start_case_temperature();
   }
 
@@ -194,10 +195,6 @@ void start_sensors() {
 
   if (ILLUMINANCE_ENABLED) {
     start_illuminance();
-  }
-
-  if (SONAR_ENABLED) {
-    start_sonar();
   }
 
   if (LIDAR_ENABLED) {
@@ -267,8 +264,6 @@ void print_json_string() {
   entry["wpir_cool"] = data.pir_in_cooldown[PIR_WIDE];
   entry["lidar_count"] = data.lidar_count;
   entry["lidar_range"] = data.lidar_range;
-  entry["uvd_count"] = data.sonar_count;
-  entry["uvd_range"] = data.sonar_range;
   entry["air_temp"] = data.air_temperature;
   entry["case_temp"] = data.case_temperature;
   entry["road_temp"] = data.road_temperature;
@@ -331,6 +326,7 @@ void update_pir() {
   * lapsed (default: 2s)
   */
 
+  // Check all PIR sensors (both narrow and wide)
   for (int i = 0; i < NUM_PIR_SENSORS; i++) {
 
     // Check cooldown status
@@ -369,6 +365,115 @@ void increment_pir_count(int sensor_num) {
     if (data.pir_in_cooldown[PIR_WIDE]) {
       data.pir_count[PIR_NARROW]++;
     }
+  }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+/* Lidar */
+void start_lidar() {
+  /**
+  * Start the rangefinder sensor
+  * A baseline range (to the ground or static surrounds) is established for
+  * comparing against new measuremets.
+  */
+  pinMode(LIDAR_TRIGGER_PIN, INPUT);
+  pinMode(LIDAR_PWM_PIN, INPUT);
+  lidar.begin();
+
+  Log.Debug(P("Lidar - Establishing baseline range..."));
+  data.lidar_baseline = get_lidar_baseline(BASELINE_VARIANCE_THRESHOLD);
+
+  timer.setInterval(LIDAR_CHECK_RANGE_INTERVAL, update_lidar);
+  data.lidar_count = 0;
+  data.lidar_range = 0;
+
+  if (data.lidar_baseline > LIDAR_DETECT_THRESHOLD) {
+
+    Log.Info(P("Lidar started - Baseline: %dcm"), data.lidar_baseline);
+  } else {
+    data.lidar_baseline = 0;
+    Log.Error(P("Lidar initialisation failed - sensor disabled"));
+  }
+
+  update_lidar();
+}
+
+int get_lidar_baseline(int variance) {
+  /**
+  * Establish the baseline range from the lidar to the ground
+  * The sensor will take samples until the readings are consistent
+  * :variance: Max allowed variance of the baseline in cm
+  * :return: Average variance of the baseline in cm
+  */
+  int average_range = get_lidar_range();
+  int baseline_reads = 1;
+  int average_variance = 500;
+
+  // Keep reading in the baseline until it stablises
+  while ((baseline_reads < MIN_BASELINE_READS || average_variance > variance) &&
+         baseline_reads < MAX_BASELINE_READS) {
+    int new_range = get_lidar_range();
+    int new_variance = abs(average_range - new_range);
+
+    average_variance = ((average_variance + new_variance) / 2);
+    average_range = ((average_range + new_range) / 2);
+
+    Log.Debug(P("Lidar Calibration: Range - %d, Variance - %d"),
+              int(average_range), average_variance);
+    baseline_reads++;
+    delay(BASELINE_READ_INTERVAL);
+  }
+
+  // Calibration fails if the range is varying too much
+  if (average_variance > variance) {
+    average_range = -1;
+  }
+
+  return average_range;
+}
+
+int get_lidar_range() {
+  /**
+  * Get the range in cm from the lidar
+  * :return: Target distance from sensor in cm
+  */
+  int target_distance = lidar.getDistance();
+  Log.Verbose(P("Lidar Range: %d cm"), target_distance);
+  return target_distance;
+}
+
+void update_lidar() {
+  /**
+  * Check the lidar to see if a traffic event has occurred.
+  * Traffic events are counted as a break in the sensor's 'view' of the ground.
+  * Any object between the sensor and the ground baseline will cause the sensor
+  * to register a shorter range than usual.
+  */
+  data.lidar_range = get_lidar_range();
+
+  // Detection occurs when target breaks the LoS to the baseline
+  if ((data.lidar_baseline - data.lidar_range) > RANGE_DETECT_THRESHOLD) {
+
+    // If x in a row
+    if (successive_lidar_detections == MIN_SUCCESSIVE_LIDAR_READS) {
+      successive_lidar_detections += 1;
+
+      // Increase traffic count
+      data.lidar_count++;
+      Log.Info(P("Traffic count - Lidar: %d counts"), data.lidar_count);
+
+      // Also send an XBee alert
+      trigger_traffic_event();
+    }
+
+    else if (successive_lidar_detections < MIN_SUCCESSIVE_LIDAR_READS) {
+      successive_lidar_detections += 1;
+    }
+  }
+
+  else {
+    successive_lidar_detections = 0;
   }
 }
 
@@ -417,42 +522,12 @@ float get_air_temperature() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-/* Road Temperature */
-void start_road_temperature() {
-  /**
-  * Start the road temperature sensor
-  */
-  road_temperature_sensor.begin();
-  timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL,
-                    update_road_temperature);
-
-  update_road_temperature();
-}
-
-void update_road_temperature() {
-  /**
-  * Read the road temperature into the entry
-  */
-  data.road_temperature = get_road_temperature();
-}
-
-float get_road_temperature() {
-  /**
-  * Read the road temperature from the non-contact thermometer
-   :return: Object temperature in deg C
-  */
-  return road_temperature_sensor.readObjectTempC();
-}
-
-////////////////////////////////////////////////////////////////////////////////
 /* Case Temperature */
 void start_case_temperature() {
   /**
   * Start the road temperature sensor
   */
-  road_temperature_sensor.begin();
-  timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL,
-                    update_case_temperature);
+  timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_case_temperature);
 
   update_case_temperature();
 }
@@ -464,12 +539,41 @@ void update_case_temperature() {
   data.case_temperature = get_case_temperature();
 }
 
-float get_case_temperature() {
-  /**
-  * Read the internal case temperature from the non-contact thermometer
-  * :return: Case temperature in deg C/
-  */
-  return road_temperature_sensor.readAmbientTempC();
+
+
+////////////////////////////////////////////////////////////////////////////////
+/* Thermal Flow */
+
+void start_thermal_flow(){
+    Wire.begin();
+    thermal_flow_sensor.initialise(16);
+}
+
+void get_frame(){
+    thermal_flow_sensor.measure(true); //get new readings from the sensor
+
+    USE_SERIAL.print("!{");
+    for(int y=0;y<4;y++){ //go through all the rows
+      USE_SERIAL.print("\"row");
+      USE_SERIAL.print(y);
+      USE_SERIAL.print("\":[");
+
+      for(int x=0;x<16;x++){ //go through all the columns
+        double tempAtXY = thermal_flow_sensor.getTemperature(y+x*4); // extract the temperature at position x/y
+        USE_SERIAL.print(tempAtXY);
+
+        if (x<15) USE_SERIAL.print(",");
+      }
+      USE_SERIAL.print("]");
+      if (y<3) USE_SERIAL.print(",");
+      //if (y<3)Serial.print("~");
+        }
+    USE_SERIAL.print("}\n\n");
+
+}
+
+float get_case_temperature(){
+    return thermal_flow_sensor.getAmbient();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

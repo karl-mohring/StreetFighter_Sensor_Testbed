@@ -11,24 +11,20 @@ const char UNIT_NAME[] = "Pixie";
 #define USE_SERIAL Serial
 const int LOGGER_LEVEL = LOG_LEVEL_VERBOSE;
 
-const bool REAL_TIME_CLOCK_ENABLED = false;
+const bool REAL_TIME_CLOCK_ENABLED = true;
 
-const bool BLUETOOTH_ENABLED = false;
-const bool XBEE_ENABLED = false;
+const bool BLUETOOTH_ENABLED = true;
+const bool XBEE_ENABLED = true;
 
-const bool CURRENT_MONITOR_ENABLED = false;
-const bool LAMP_CONTROL_ENABLED = false;
+const bool CURRENT_MONITOR_ENABLED = true;
+const bool LAMP_CONTROL_ENABLED = true;
 
-const bool AIR_TEMPERATURE_ENABLED = false;
+const bool AIR_TEMPERATURE_ENABLED = true;
 const bool ROAD_TEMPERATURE_ENABLED = true;
 const bool HUMIDITY_ENABLED = true;
 const bool ILLUMINANCE_ENABLED = true;
-const bool MICROPHONE_ENABLED = true;
 
-    const bool PIR_ENABLED = true;
-const bool SONAR_ENABLED = true;
-const bool LIDAR_ENABLED = false;
-
+const bool PIR_ENABLED = true;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Temperature Probe
@@ -46,6 +42,7 @@ const float AREF_VOLTAGE = 5.0;
 const int YUN_BOOT_DELAY = 5000; //Time to wait for Yun to boot up before checking the handshake
 const long YUN_LINUX_BAUD_RATE = 250000;
 const int COMM_BUFFER_SIZE = 300;
+const int BLUETOOTH_BUFFER_SIZE = 300;
 
 const long SERIAL_BAUD = 57600;
 
@@ -70,7 +67,7 @@ const byte SPI_SS = 5;  // SPI Slave Select
 const byte LAMP_CONTROL_PIN = 6;    // Lamp control - uses PWM with inverse duty cycle
 const byte YUN_HANDSHAKE_PIN = 7;   // Yun handshake - HIGH when Yun is busy/booting
 const byte XBEE_SLEEP_PIN = 8;  // XBEE sleep pin; Bring HIGH to allow XBEE comms
-const byte PIR_MOTION_PIN = 9;  // PIR motion detect pin; pulled HIGH when motion is detected
+const byte WIDE_PIR_PIN = 9;  // PIR motion detect pin; pulled HIGH when motion is detected
 const byte COMM_2_TX = 10;  // Send pin for XBEE socket 2; UART-only
 const byte COMM_2_RX = 11;  // Receive pin for XBEE socket 2; UART-only
 const byte LIDAR_PWM_PIN = 12;  // Data pin for LIDARLite
@@ -78,8 +75,8 @@ const byte LIDAR_TRIGGER_PIN = 13;  // PWM Trigger pin for LIDARLite
 const byte COMM_1_RX = 14;  // Send pin for XBEE socket 1; UART and SPI compatible
 const byte COMM_1_TX = 16;  // Receive pin for XBEE socket 1; UART and SPI compatible
 
-const byte SONAR_PIN = A0;  // Sonar receive pin - can use pulse width or ADC for distance measurements
-const byte MICROPHONE_PIN = A2; // Microphone level pin - Gives ADC volume envelope
+const byte WIDE_PIR_2_PIN = A0;  // Sonar receive pin - can use pulse width or ADC for distance measurements
+const byte NARROW_PIR_PIN = A1;
 const byte HUMIDITY_PIN = A3;   // Humidity level pin - Gives ADC humidity level
 const byte TEMPERATURE_PIN = A4;    // Temperature data pin for DS18B20 digital temperature probe
 const byte CURRENT_DETECT_PIN = A5; // Current monitor pin for current clamp - gives offset ADC current wave
@@ -87,8 +84,6 @@ const byte CURRENT_DETECT_PIN = A5; // Current monitor pin for current clamp - g
 
 ///////////////////////////////////////////////////////////////////////////////
 // Timer
-const int MOTION_COOLDOWN = 2500; // Time left for the PIR sensor to cool down after a detection in ms
-const int CHECK_MOTION_INTERVAL = MOTION_COOLDOWN/8;
 
 const int CHECK_FLOW_INTERVAL = 200;
 const int FLOW_COOLDOWN = 2000; // Optical flow detection cooldown in ms
@@ -100,12 +95,14 @@ const int LIDAR_CHECK_RANGE_INTERVAL = 100;
 const int LIDAR_DETECT_THRESHOLD = 50;
 
 const long PRINT_INTERVAL = 10000;
-const int CHECK_ENVIRONMENTAL_SENSOR_INTERVAL = PRINT_INTERVAL/3;
+const long CHECK_ENVIRONMENTAL_SENSOR_INTERVAL = PRINT_INTERVAL/3;
 const long XBEE_TRANSMIT_INTERVAL = PRINT_INTERVAL; // Time between XBee transmissions
+const long SYSTEM_CLOCK_UPDATE_INTERVAL = 6000;
 
 const int BLUETOOTH_SCAN_TIME = 5;  // Bluetooth scan duration in seconds
 const long BLUETOOTH_SCAN_TIME_MS = BLUETOOTH_SCAN_TIME * 1000; // Length of a bluetooth scan in milliseconds
-const long BLUETOOTH_SCAN_INTERVAL = 10000; // Time between bluetooth scans in milliseconds
+const long BLUETOOTH_SCAN_INTERVAL = BLUETOOTH_SCAN_TIME_MS + 6000; // Time between bluetooth scans in milliseconds
+const long BLUETOOTH_CHECK_INTERVAL = 20;  // Time between bluetooth response checks
 const long BLUETOOTH_SERIAL_WAIT = 1000;
 
 
@@ -120,23 +117,25 @@ const byte MIN_BASELINE_READS = 20; // Minimum number of reads needed to establi
 const byte MAX_BASELINE_READS = 30; // Maximum number of reads to establishe a baseline
 const int BASELINE_READ_INTERVAL = 200; // Time between range baseline calibration reads in milliseconds
 const int BASELINE_VARIANCE_THRESHOLD = 20; // Maximum acceptable range sensor baseline error in cm.
-const byte MIN_SUCCESSIVE_SONAR_READS = 1;  // Number of consecutive sonar reads that will result in a 'detection'
 const byte MIN_SUCCESSIVE_LIDAR_READS = 0;  // Number of consecutive lidar reads that will result in a 'detection'
-
-enum SONAR_READ_METHODS{
-    PULSE = 1,
-    ANALOG = 2
-};
-const int SONAR_READ_METHOD = ANALOG;
-
-enum SONAR_TYPES{
-    EZ = 1,
-    WR = 2
-};
-const int SONAR_MODEL = EZ;
 
 ///////////////////////////////////////////////////////////////////////////////
 // PIR
+
+enum PIR_TYPE{
+    PIR_WIDE = 0,
+    PIR_NARROW = 1
+};
+
+const byte NUM_PIR_SENSORS = 3;
+const byte PIR_PINS[NUM_PIR_SENSORS] = {WIDE_PIR_PIN, NARROW_PIR_PIN, WIDE_PIR_2_PIN};
+const byte PIR_TYPES[NUM_PIR_SENSOR] = {PIR_WIDE, PIR_NARROW, PIR_WIDE}
+const bool PIR_ACTIVE_STATES[NUM_PIR_SENSORS] = {HIGH, HIGH, HIGH};
+const bool PIR_MUST_GO_LOW_BETWEEN_TRIGGERS = false;
+const int PIR_COOLDOWNS[NUM_PIR_SENSORS] = {5000, 2500, 5000};
+
+const int CHECK_MOTION_INTERVAL = 100;
+
 const int MOTION_INITIALISATION_TIME = 10000; // Time given for PIR sensor to calibrate in ms.
 const byte MOTION_DETECTED = HIGH;
 const byte MOTION_INITIALISATION_INTERVALS = 5;
@@ -145,9 +144,9 @@ const byte MOTION_INITIALISATION_INTERVALS = 5;
 ///////////////////////////////////////////////////////////////////////////////
 // Current Monitor
 const int TRANSFORMER_RATIO = 2000;	// The ratio of the current transformer
-const int BURDEN_RESISTOR = 330;		// Value of the burden resistor in Ohms
+const int BURDEN_RESISTOR = 2200;		// Value of the burden resistor in Ohms
 const int CURRENT_SAMPLES = 1000;	// Number of ADC samples taken when measuring current
-const float CURRENT_CALIBRATION_FACTOR = TRANSFORMER_RATIO / BURDEN_RESISTOR;
+const double CURRENT_CALIBRATION_FACTOR = TRANSFORMER_RATIO / BURDEN_RESISTOR;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -169,17 +168,13 @@ const int LAMP_TRANSITION_STEP_DOWN = LAMP_TRANSITION_STEP_UP;
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// Lamp Dimming
-const long SOUND_SAMPLE_TIME = 100; // Width of sound level sample in milliseconds
-
-///////////////////////////////////////////////////////////////////////////////
 // Data structures
 struct SensorEntry{
     const char* id;
     int version;
     bool event_flag;
-    long pir_count;
-    bool last_pir_status;
+    long pir_count[NUM_PIR_SENSORS];
+    bool pir_in_cooldown[NUM_PIR_SENSORS];
     long lidar_count;
     int lidar_range;
     int lidar_baseline;
@@ -192,7 +187,6 @@ struct SensorEntry{
     float humidity;
     int illuminance;
     float current_draw;
-    int noise_level;
     char timestamp[DATETIME_WIDTH];
 };
 
@@ -229,8 +223,7 @@ int get_lidar_range();
 void update_lidar();
 void start_pir();
 void update_pir();
-void enter_pir_cooldown();
-void resume_pir_detection();
+void increment_pir_count(int sensor_num);
 void start_air_temperature();
 void update_air_temperature();
 float get_air_temperature();
@@ -246,9 +239,6 @@ float get_humidity(float air_temperature);
 void start_illuminance();
 void update_illuminance();
 int get_illuminance();
-void start_noise_monitoring();
-void update_noise_level();
-int get_noise_level(int sample_period);
 void start_current_monitor();
 void update_current_draw();
 float get_current_draw();
@@ -256,6 +246,7 @@ void start_rtc();
 void update_timestamp();
 long get_timestamp();
 void get_datetime(char* buffer);
+void update_system_clock();
 void enable_lamp_control();
 void activate_lamp();
 void update_lamp_timeout();

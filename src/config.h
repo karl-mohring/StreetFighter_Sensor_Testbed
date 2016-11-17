@@ -5,7 +5,7 @@
 // Unit
 const int SSL_TESTBED_VERSION = 9;
 const byte UNIT_ID = 1;
-const char UNIT_NAME[] = "Pixie";
+const char UNIT_NAME[] = "Quezacoatl";
 
 // Use Serial for debug; Serial1 for normal operation
 #define USE_SERIAL Serial
@@ -17,29 +17,13 @@ const bool CURRENT_MONITOR_ENABLED = false;
 const bool LAMP_CONTROL_ENABLED = false;
 
 // Comms
-const bool BLUETOOTH_ENABLED = true;
-const bool XBEE_ENABLED = true;
-
-// Environmental
-const bool AIR_TEMPERATURE_ENABLED = false;
-const bool HUMIDITY_ENABLED = false;
-const bool ILLUMINANCE_ENABLED = false;
+const bool BLUETOOTH_ENABLED = false;
+const bool XBEE_ENABLED = false;
 
 // Traffic
 const bool PIR_ENABLED = true;
 const bool LIDAR_ENABLED = true;
 const bool THERMO_FLOW_ENABLED = true;
-
-///////////////////////////////////////////////////////////////////////////////
-// Temperature Probe
-const byte TEMPERATURE_RESOLUTION = 12; //12-bit temperature resolution
-enum TEMPERATURE_SENSORS{
-    TMP36 = 1,
-    DS18B20 = 2
-};
-const byte TEMPERATURE_SENSOR = DS18B20;
-const float AREF_VOLTAGE = 5.0;
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // Comms
@@ -71,7 +55,7 @@ const byte SPI_SS = 5;  // SPI Slave Select
 const byte LAMP_CONTROL_PIN = 6;    // Lamp control - uses PWM with inverse duty cycle
 const byte YUN_HANDSHAKE_PIN = 7;   // Yun handshake - HIGH when Yun is busy/booting
 const byte XBEE_SLEEP_PIN = 8;  // XBEE sleep pin; Bring HIGH to allow XBEE comms
-const byte WIDE_PIR_PIN = 9;  // PIR motion detect pin; pulled HIGH when motion is detected
+const byte WIDE_PIR_PIN_L = 9;  // PIR motion detect pin; pulled HIGH when motion is detected
 const byte COMM_2_TX = 10;  // Send pin for XBEE socket 2; UART-only
 const byte COMM_2_RX = 11;  // Receive pin for XBEE socket 2; UART-only
 const byte LIDAR_PWM_PIN = 12;  // Data pin for LIDARLite
@@ -79,7 +63,7 @@ const byte LIDAR_TRIGGER_PIN = 13;  // PWM Trigger pin for LIDARLite
 const byte COMM_1_RX = 14;  // Send pin for XBEE socket 1; UART and SPI compatible
 const byte COMM_1_TX = 16;  // Receive pin for XBEE socket 1; UART and SPI compatible
 
-const byte WIDE_PIR_2_PIN = A0;  // Sonar receive pin - can use pulse width or ADC for distance measurements
+const byte WIDE_PIR_PIN_R = A0;  // Sonar receive pin - can use pulse width or ADC for distance measurements
 const byte NARROW_PIR_PIN = A1;
 const byte HUMIDITY_PIN = A3;   // Humidity level pin - Gives ADC humidity level
 const byte TEMPERATURE_PIN = A4;    // Temperature data pin for DS18B20 digital temperature probe
@@ -101,7 +85,7 @@ const int LIDAR_DETECT_THRESHOLD = 50;
 const long PRINT_INTERVAL = 10000;
 const long CHECK_ENVIRONMENTAL_SENSOR_INTERVAL = PRINT_INTERVAL/3;
 const long XBEE_TRANSMIT_INTERVAL = PRINT_INTERVAL; // Time between XBee transmissions
-const long SYSTEM_CLOCK_UPDATE_INTERVAL = 6000;
+const long SYSTEM_CLOCK_UPDATE_INTERVAL = 60000;
 
 const int BLUETOOTH_SCAN_TIME = 5;  // Bluetooth scan duration in seconds
 const long BLUETOOTH_SCAN_TIME_MS = BLUETOOTH_SCAN_TIME * 1000; // Length of a bluetooth scan in milliseconds
@@ -131,18 +115,24 @@ enum PIR_TYPE{
     PIR_NARROW = 1
 };
 
+enum PIR_SIDE_INDEX{
+    PIR_WIDE_LEFT = 0,
+    PIR_WIDE_RIGHT = 2
+};
+
 const byte NUM_PIR_SENSORS = 3;
-const byte PIR_PINS[NUM_PIR_SENSORS] = {WIDE_PIR_PIN, NARROW_PIR_PIN, WIDE_PIR_2_PIN};
+const byte PIR_PINS[NUM_PIR_SENSORS] = {WIDE_PIR_PIN_L, NARROW_PIR_PIN, WIDE_PIR_PIN_R};
 const byte PIR_TYPES[NUM_PIR_SENSORS] = {PIR_WIDE, PIR_NARROW, PIR_WIDE};
 const bool PIR_ACTIVE_STATES[NUM_PIR_SENSORS] = {HIGH, HIGH, HIGH};
 const bool PIR_MUST_GO_LOW_BETWEEN_TRIGGERS = false;
 const unsigned long PIR_COOLDOWNS[NUM_PIR_SENSORS] = {5000, 2500, 5000};
 
-const int CHECK_MOTION_INTERVAL = 100;
+const int CHECK_MOTION_INTERVAL = 100;  // Time between sensor checks in ms.
 
 const long MOTION_INITIALISATION_TIME = 10000; // Time given for PIR sensor to calibrate in ms.
-const byte MOTION_DETECTED = HIGH;
 const byte MOTION_INITIALISATION_INTERVALS = 5;
+const long PIR_MAX_FLOW_DELAY = 2000;   // Maximum time to allow an object to flow across the motion detection areas and count as a flow detection
+const long PIR_MIN_FLOW_DELAY = 500;    // Minimum time to allow an object to flow across. Prevents weird side events
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -182,22 +172,9 @@ struct SensorEntry{
     long lidar_count;
     int lidar_range;
     int lidar_baseline;
-    float air_temperature;
     float case_temperature;
     float road_temperature;
-    float humidity;
-    int illuminance;
-    float current_draw;
     char timestamp[DATETIME_WIDTH];
-};
-
-struct LampControl{
-    bool is_active;
-    byte current_level;
-    byte target;
-    long timeout;
-    int timer_id;
-    bool control_enabled;
 };
 
 
@@ -225,6 +202,8 @@ void update_lidar();
 void start_pir();
 void update_pir();
 void increment_pir_count(int sensor_num);
+void increment_narrow_pir(int sensor_num);
+void increment_wide_pir(int sensor_num);
 
 void start_air_temperature();
 void update_air_temperature();

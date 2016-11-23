@@ -5,7 +5,7 @@
 
 //#include <ArduinoJson.h>
 //#include <LIDARduino.h>
-//#include "MLX90621.h"
+#include "MLX90621.h"
 #include "ProgmemString.h"
 #include "Logging.h"
 #include "SimpleTimer.h"
@@ -21,7 +21,7 @@
 // Traffic Sensors
 //LIDAR_Lite_PWM lidar(LIDAR_TRIGGER_PIN, LIDAR_PWM_PIN);
 // static int successive_lidar_detections = 0;
-//MLX90621 thermal_flow_sensor;
+MLX90621 thermal_flow_sensor;
 
 // Misc
 RTC_DS3231 rtc;
@@ -163,10 +163,10 @@ void start_sensors() {
 
   // Environment
 
-  // if (THERMO_FLOW_ENABLED) {
-  //   start_thermal_flow();
-  //   start_case_temperature();
-  // }
+  if (THERMO_FLOW_ENABLED) {
+    start_thermal_flow();
+    start_case_temperature();
+  }
 
   //
   // if (LIDAR_ENABLED) {
@@ -487,53 +487,47 @@ void increment_wide_pir(int sensor_num){
 
 ////////////////////////////////////////////////////////////////////////////////
 /* Thermal Flow */
-// void start_thermal_flow(){
-//     Wire.begin();
-//     thermal_flow_sensor.initialise(16);
-// }
-//
-// void get_frame(){
-//     thermal_flow_sensor.measure(true); //get new readings from the sensor
-//
-//     USE_SERIAL.print("!{");
-//     for(int y=0;y<4;y++){ //go through all the rows
-//       USE_SERIAL.print("\"row");
-//       USE_SERIAL.print(y);
-//       USE_SERIAL.print("\":[");
-//
-//       for(int x=0;x<16;x++){ //go through all the columns
-//         double tempAtXY = thermal_flow_sensor.getTemperature(y+x*4); // extract the temperature at position x/y
-//         USE_SERIAL.print(tempAtXY);
-//
-//         if (x<15) USE_SERIAL.print(",");
-//       }
-//       USE_SERIAL.print("]");
-//       if (y<3) USE_SERIAL.print(",");
-//       //if (y<3)Serial.print("~");
-//         }
-//     USE_SERIAL.print("}\n\n");
-//
-// }
-//
-// void start_case_temperature() {
-//   /**
-//   * Start the road temperature sensor
-//   */
-//   timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_case_temperature);
-//
-//   update_case_temperature();
-// }
-//
-// void update_case_temperature() {
-//   /**
-//   * Read the road temperature into the entry
-//   */
-//   data.case_temperature = get_case_temperature();
-// }
-//
-// float get_case_temperature(){
-//     return thermal_flow_sensor.getAmbient();
-// }
+void start_thermal_flow(){
+    Wire.begin();
+    thermal_flow_sensor.initialise(THERM_FRAMERATE);
+
+    timer.setInterval(THERM_FRAME_UPDATE_INTERVAL, get_frame);
+}
+
+void get_frame(){
+    // Prepend the frame packet with it's tags
+    USE_SERIAL.print(PACKET_START);
+    USE_SERIAL.print(P("{id:thermal, data:"));
+    // for (int i = 0; i < 64; i++) {
+    //     USE_SERIAL.print(thermal_flow_sensor.irData[i]);
+    //     if (i < 63) {
+    //         USE_SERIAL.print(",");
+    //     }
+    // }
+    thermal_flow_sensor.print_temperatures(USE_SERIAL);
+    USE_SERIAL.print("}\n\n");
+}
+
+void start_case_temperature() {
+  /**
+  * Start the road temperature sensor
+  */
+  timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_case_temperature);
+  thermal_flow_sensor.initialise(16);
+  update_case_temperature();
+}
+
+void update_case_temperature() {
+  /**
+  * Read the road temperature into the entry
+  */
+  // data.case_temperature = get_case_temperature();
+  // Log.Info("Ambient temperature: %d.%d degC", int(data.case_temperature), int((data.case_temperature - int(data.case_temperature))*100));
+}
+
+float get_case_temperature(){
+    // return thermal_flow_sensor.get_ambient_temperature();
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /* RTC */

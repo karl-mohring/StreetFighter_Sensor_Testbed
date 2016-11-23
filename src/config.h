@@ -21,7 +21,7 @@ const bool BLUETOOTH_ENABLED = false;
 const bool XBEE_ENABLED = false;
 
 // Traffic
-const bool PIR_ENABLED = true;
+const bool PIR_ENABLED = false;
 const bool LIDAR_ENABLED = true;
 const bool THERMO_FLOW_ENABLED = true;
 
@@ -82,8 +82,8 @@ const int RANGE_DETECT_THRESHOLD = 70; // Minimum threshold for range detection 
 const int LIDAR_CHECK_RANGE_INTERVAL = 100;
 const int LIDAR_DETECT_THRESHOLD = 50;
 
-const long PRINT_INTERVAL = 10000;
-const long CHECK_ENVIRONMENTAL_SENSOR_INTERVAL = PRINT_INTERVAL/3;
+const long PRINT_INTERVAL = 5000;
+const long CHECK_ENVIRONMENTAL_SENSOR_INTERVAL = PRINT_INTERVAL/2;
 const long XBEE_TRANSMIT_INTERVAL = PRINT_INTERVAL; // Time between XBee transmissions
 const long SYSTEM_CLOCK_UPDATE_INTERVAL = 60000;
 
@@ -134,6 +134,13 @@ const byte MOTION_INITIALISATION_INTERVALS = 5;
 const long PIR_MAX_FLOW_DELAY = 2000;   // Maximum time to allow an object to flow across the motion detection areas and count as a flow detection
 const long PIR_MIN_FLOW_DELAY = 500;    // Minimum time to allow an object to flow across. Prevents weird side events
 
+///////////////////////////////////////////////////////////////////////////////
+// Thermal Flow
+
+const byte THERM_ROWS = 4;
+const byte THERM_COLS = 16;
+const int THERM_FRAMERATE = 16;
+const int THERM_FRAME_UPDATE_INTERVAL = 1000 / THERM_FRAMERATE;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Current Monitor

@@ -8,6 +8,10 @@
  *  	Adapted for use with Arduino UNO
  *
  * Adapted again by https://github.com/Leenix
+ * 		- Removed hard memory allocations for IR data and calculated temperatures
+ *		- Added option to print values directly instead of storing them
+ *		- Removed unused or redundant variables
+ *		- Did a little bit of Spring cleaning
  */
 #include "MLX90621.h"
 

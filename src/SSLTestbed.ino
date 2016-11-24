@@ -1,10 +1,10 @@
 #include <Arduino.h>
 #include <Wire.h>
-//#include <SoftwareSerial.h>
+#include <SoftwareSerial.h>
 #include <RTClib.h>
 
-//#include <ArduinoJson.h>
-//#include <LIDARduino.h>
+#include <ArduinoJson.h>
+#include <LIDARduino.h>
 #include "MLX90621.h"
 #include "ProgmemString.h"
 #include "Logging.h"
@@ -13,27 +13,22 @@
 #include "config.h"
 
 // XBee - in Transparent (Serial bridge) mode
-// SoftwareSerial xbee_bridge(COMM_1_RX, COMM_1_TX);
+SoftwareSerial xbee_bridge(COMM_1_RX, COMM_1_TX);
 
 // Bluetooth module
-// SoftwareSerial bluetooth(COMM_2_RX, COMM_2_TX);
+SoftwareSerial bluetooth(COMM_2_RX, COMM_2_TX);
 
 // Traffic Sensors
-//LIDAR_Lite_PWM lidar(LIDAR_TRIGGER_PIN, LIDAR_PWM_PIN);
-// static int successive_lidar_detections = 0;
+LIDAR_Lite_PWM lidar(LIDAR_TRIGGER_PIN, LIDAR_PWM_PIN);
+static int successive_lidar_detections = 0;
 MLX90621 thermal_flow_sensor;
 
 // Misc
 RTC_DS3231 rtc;
 
-//char bluetooth_buffer[BLUETOOTH_BUFFER_SIZE];
-// int bluetooth_index = 0;
-// bool bluetooth_recording = false;
-
-// JSON serialiser - should be enclosed in function scope, but dynamic memory
-// allocation scares me
-//StaticJsonBuffer<COMM_BUFFER_SIZE> print_buffer;
-//JsonObject &entry = print_buffer.createObject();
+char bluetooth_buffer[BLUETOOTH_BUFFER_SIZE];
+int bluetooth_index = 0;
+bool bluetooth_recording = false;
 
 // Timers
 SimpleTimer timer;
@@ -64,13 +59,13 @@ void setup() {
   }
 
   if (XBEE_ENABLED) {
-    // start_xbee();
+    start_xbee();
   }
 
   start_sensors();
 
   if (BLUETOOTH_ENABLED) {
-    // start_bluetooth_scanner();
+    start_bluetooth_scanner();
   }
 }
 
@@ -150,7 +145,7 @@ void start_xbee() {
   * bridge.
   * There is no packet handling and all data travels one way: out
   */
-  // xbee_bridge.begin(XBEE_BAUD);
+  xbee_bridge.begin(XBEE_BAUD);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -162,16 +157,14 @@ void start_sensors() {
   */
 
   // Environment
-
   if (THERMO_FLOW_ENABLED) {
     start_thermal_flow();
     start_case_temperature();
   }
 
-  //
-  // if (LIDAR_ENABLED) {
-  //   start_lidar();
-  // }
+  if (LIDAR_ENABLED) {
+    start_lidar();
+  }
 
   if (PIR_ENABLED) {
     start_pir();
@@ -216,33 +209,35 @@ void print_json_string() {
   * Format the data packet into a JSON string
   * @return JSON-formatted string containing selected data
   */
+  StaticJsonBuffer<COMM_BUFFER_SIZE> print_buffer;
+  JsonObject &entry = print_buffer.createObject();
 
-  // entry["version"] = data.version;
-  // entry["id"] = data.id;
-  // entry["event_flag"] = data.event_flag;
-  // entry["npir_count"] = data.pir_count[PIR_NARROW];
-  // entry["wpir_count"] = data.pir_count[PIR_WIDE];
-  // entry["npir_cool"] = data.pir_in_cooldown[PIR_NARROW];
-  // entry["wpir_cool"] = data.pir_in_cooldown[PIR_WIDE];
-  // entry["lidar_count"] = data.lidar_count;
-  // entry["lidar_range"] = data.lidar_range;
-  // entry["case_temp"] = data.case_temperature;
-  // entry["road_temp"] = data.road_temperature;
-  // entry["timestamp"] = data.timestamp;
-  //
-  // if (Log.getLevel() > LOG_LEVEL_NOOUTPUT) {
-  //   USE_SERIAL.print(PACKET_START);
-  //   entry.printTo(USE_SERIAL);
-  //   USE_SERIAL.println(PACKET_END);
-  //   USE_SERIAL.flush();
-  // }
-  //
-  // if (XBEE_ENABLED) {
-  //   // Push the JSON string to XBee as well
-  //   xbee_bridge.print(PACKET_START);
-  //   entry.printTo(xbee_bridge);
-  //   xbee_bridge.print(PACKET_END);
-  // }
+  entry["ver"] = data.version;
+  entry["id"] = data.id;
+  entry["npir"] = data.pir_count[PIR_NARROW];
+  entry["wpir_l"] = data.pir_count[PIR_WIDE_LEFT];
+  entry["wpir_r"] = data.pir_count[PIR_WIDE_RIGHT];
+  entry["cool_n"] = data.pir_in_cooldown[PIR_NARROW];
+  entry["cool_l"] = data.pir_in_cooldown[PIR_WIDE_LEFT];
+  entry["cool_r"] = data.pir_in_cooldown[PIR_WIDE_RIGHT];
+  entry["lidar"] = data.lidar_count;
+  entry["l_range"] = data.lidar_range;
+  entry["t_case"] = data.case_temperature;
+  entry["timestamp"] = data.timestamp;
+
+  if (Log.getLevel() > LOG_LEVEL_NOOUTPUT) {
+    USE_SERIAL.print(PACKET_START);
+    entry.printTo(USE_SERIAL);
+    USE_SERIAL.println(PACKET_END);
+    USE_SERIAL.flush();
+  }
+
+  if (XBEE_ENABLED) {
+    // Push the JSON string to XBee as well
+    xbee_bridge.print(PACKET_START);
+    entry.printTo(xbee_bridge);
+    xbee_bridge.print(PACKET_END);
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -260,21 +255,30 @@ void start_pir() {
     data.pir_count[i] = 0;
   }
 
-  Log.Info(P("Calibrating motion sensor - wait %d ms"), MOTION_INITIALISATION_TIME);
-
   // Stop everything until the PIR sensor has had a chance to settle
-  for (long i = 0; i < MOTION_INITIALISATION_TIME;
-       i += (MOTION_INITIALISATION_TIME / MOTION_INITIALISATION_INTERVALS)) {
-    Log.Debug(P("Motion sensor calibration: %d ms remaining..."), (MOTION_INITIALISATION_TIME - i));
-    USE_SERIAL.flush();
-    delay(MOTION_INITIALISATION_TIME / MOTION_INITIALISATION_INTERVALS);
-  }
+  warm_up_pir_sensors();
 
   // Start up regular reads
   timer.setInterval(CHECK_MOTION_INTERVAL, update_pir);
   Log.Info(P("Motion started"));
 
   update_pir();
+}
+
+void warm_up_pir_sensors(){
+    /**
+    * Halt the system until the PIR sensors have had a chance to start.
+    * The downtime is goverened by the MOTION_INITIALISATION_TIME variable
+    * Default: 10 seconds
+    */
+    Log.Info(P("Calibrating motion sensor - wait %d ms"), MOTION_INITIALISATION_TIME);
+
+    for (long i = 0; i < MOTION_INITIALISATION_TIME;
+         i += (MOTION_INITIALISATION_TIME / MOTION_INITIALISATION_INTERVALS)) {
+      Log.Debug(P("Motion sensor calibration: %d ms remaining..."), (MOTION_INITIALISATION_TIME - i));
+      USE_SERIAL.flush();
+      delay(MOTION_INITIALISATION_TIME / MOTION_INITIALISATION_INTERVALS);
+    }
 }
 
 void update_pir() {
@@ -379,111 +383,111 @@ void increment_wide_pir(int sensor_num){
 
 ////////////////////////////////////////////////////////////////////////////////
 /* Lidar */
-// void start_lidar() {
-//   /**
-//   * Start the rangefinder sensor
-//   * A baseline range (to the ground or static surrounds) is established for
-//   * comparing against new measuremets.
-//   */
-//   pinMode(LIDAR_TRIGGER_PIN, INPUT);
-//   pinMode(LIDAR_PWM_PIN, INPUT);
-//   lidar.begin();
-//
-//   Log.Debug(P("Lidar - Establishing baseline range..."));
-//   data.lidar_baseline = get_lidar_baseline(BASELINE_VARIANCE_THRESHOLD);
-//
-//   timer.setInterval(LIDAR_CHECK_RANGE_INTERVAL, update_lidar);
-//   data.lidar_count = 0;
-//   data.lidar_range = 0;
-//
-//   if (data.lidar_baseline > LIDAR_DETECT_THRESHOLD) {
-//
-//     Log.Info(P("Lidar started - Baseline: %dcm"), data.lidar_baseline);
-//   } else {
-//     data.lidar_baseline = 0;
-//     Log.Error(P("Lidar initialisation failed - sensor disabled"));
-//   }
-//
-//   update_lidar();
-// }
-//
-// int get_lidar_baseline(int variance) {
-//   /**
-//   * Establish the baseline range from the lidar to the ground
-//   * The sensor will take samples until the readings are consistent
-//   * :variance: Max allowed variance of the baseline in cm
-//   * :return: Average variance of the baseline in cm
-//   */
-//   int average_range = get_lidar_range();
-//   int baseline_reads = 1;
-//   int average_variance = 500;
-//
-//   // Keep reading in the baseline until it stablises
-//   while ((baseline_reads < MIN_BASELINE_READS || average_variance > variance) &&
-//          baseline_reads < MAX_BASELINE_READS) {
-//     int new_range = get_lidar_range();
-//     int new_variance = abs(average_range - new_range);
-//
-//     average_variance = ((average_variance + new_variance) / 2);
-//     average_range = ((average_range + new_range) / 2);
-//
-//     Log.Debug(P("Lidar Calibration: Range - %d, Variance - %d"),
-//               int(average_range), average_variance);
-//     baseline_reads++;
-//     delay(BASELINE_READ_INTERVAL);
-//   }
-//
-//   // Calibration fails if the range is varying too much
-//   if (average_variance > variance) {
-//     average_range = -1;
-//   }
-//
-//   return average_range;
-// }
-//
-// int get_lidar_range() {
-//   /**
-//   * Get the range in cm from the lidar
-//   * :return: Target distance from sensor in cm
-//   */
-//   int target_distance = lidar.getDistance();
-//   Log.Verbose(P("Lidar Range: %d cm"), target_distance);
-//   return target_distance;
-// }
-//
-// void update_lidar() {
-//   /**
-//   * Check the lidar to see if a traffic event has occurred.
-//   * Traffic events are counted as a break in the sensor's 'view' of the ground.
-//   * Any object between the sensor and the ground baseline will cause the sensor
-//   * to register a shorter range than usual.
-//   */
-//   data.lidar_range = get_lidar_range();
-//
-//   // Detection occurs when target breaks the LoS to the baseline
-//   if ((data.lidar_baseline - data.lidar_range) > RANGE_DETECT_THRESHOLD) {
-//
-//     // If x in a row
-//     if (successive_lidar_detections == MIN_SUCCESSIVE_LIDAR_READS) {
-//       successive_lidar_detections += 1;
-//
-//       // Increase traffic count
-//       data.lidar_count++;
-//       Log.Info(P("Traffic count - Lidar: %d counts"), data.lidar_count);
-//
-//       // Also send an XBee alert
-//       trigger_traffic_event();
-//     }
-//
-//     else if (successive_lidar_detections < MIN_SUCCESSIVE_LIDAR_READS) {
-//       successive_lidar_detections += 1;
-//     }
-//   }
-//
-//   else {
-//     successive_lidar_detections = 0;
-//   }
-// }
+void start_lidar() {
+  /**
+  * Start the rangefinder sensor
+  * A baseline range (to the ground or static surrounds) is established for
+  * comparing against new measuremets.
+  */
+  pinMode(LIDAR_TRIGGER_PIN, INPUT);
+  pinMode(LIDAR_PWM_PIN, INPUT);
+  lidar.begin();
+
+  Log.Debug(P("Lidar - Establishing baseline range..."));
+  data.lidar_baseline = get_lidar_baseline(BASELINE_VARIANCE_THRESHOLD);
+
+  timer.setInterval(LIDAR_CHECK_RANGE_INTERVAL, update_lidar);
+  data.lidar_count = 0;
+  data.lidar_range = 0;
+
+  if (data.lidar_baseline > LIDAR_DETECT_THRESHOLD) {
+
+    Log.Info(P("Lidar started - Baseline: %dcm"), data.lidar_baseline);
+  } else {
+    data.lidar_baseline = 0;
+    Log.Error(P("Lidar initialisation failed - sensor disabled"));
+  }
+
+  update_lidar();
+}
+
+int get_lidar_baseline(int variance) {
+  /**
+  * Establish the baseline range from the lidar to the ground
+  * The sensor will take samples until the readings are consistent
+  * :variance: Max allowed variance of the baseline in cm
+  * :return: Average variance of the baseline in cm
+  */
+  int average_range = get_lidar_range();
+  int baseline_reads = 1;
+  int average_variance = 500;
+
+  // Keep reading in the baseline until it stablises
+  while ((baseline_reads < MIN_BASELINE_READS || average_variance > variance) &&
+         baseline_reads < MAX_BASELINE_READS) {
+    int new_range = get_lidar_range();
+    int new_variance = abs(average_range - new_range);
+
+    average_variance = ((average_variance + new_variance) / 2);
+    average_range = ((average_range + new_range) / 2);
+
+    Log.Debug(P("Lidar Calibration: Range - %d, Variance - %d"),
+              int(average_range), average_variance);
+    baseline_reads++;
+    delay(BASELINE_READ_INTERVAL);
+  }
+
+  // Calibration fails if the range is varying too much
+  if (average_variance > variance) {
+    average_range = -1;
+  }
+
+  return average_range;
+}
+
+int get_lidar_range() {
+  /**
+  * Get the range in cm from the lidar
+  * :return: Target distance from sensor in cm
+  */
+  int target_distance = lidar.getDistance();
+  Log.Verbose(P("Lidar Range: %d cm"), target_distance);
+  return target_distance;
+}
+
+void update_lidar() {
+  /**
+  * Check the lidar to see if a traffic event has occurred.
+  * Traffic events are counted as a break in the sensor's 'view' of the ground.
+  * Any object between the sensor and the ground baseline will cause the sensor
+  * to register a shorter range than usual.
+  */
+  data.lidar_range = get_lidar_range();
+
+  // Detection occurs when target breaks the LoS to the baseline
+  if ((data.lidar_baseline - data.lidar_range) > RANGE_DETECT_THRESHOLD) {
+
+    // If x in a row
+    if (successive_lidar_detections == MIN_SUCCESSIVE_LIDAR_READS) {
+      successive_lidar_detections += 1;
+
+      // Increase traffic count
+      data.lidar_count++;
+      Log.Info(P("Traffic count - Lidar: %d counts"), data.lidar_count);
+
+      // Also send an XBee alert
+      trigger_traffic_event();
+    }
+
+    else if (successive_lidar_detections < MIN_SUCCESSIVE_LIDAR_READS) {
+      successive_lidar_detections += 1;
+    }
+  }
+
+  else {
+    successive_lidar_detections = 0;
+  }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /* Thermal Flow */
@@ -513,7 +517,6 @@ void start_case_temperature() {
   * Start the road temperature sensor
   */
   timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_case_temperature);
-  thermal_flow_sensor.initialise(16);
   update_case_temperature();
 }
 
@@ -526,7 +529,7 @@ void update_case_temperature() {
 }
 
 float get_case_temperature(){
-    // return thermal_flow_sensor.get_ambient_temperature();
+    return thermal_flow_sensor.get_ambient_temperature();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -586,89 +589,89 @@ void update_system_clock() {
 
 ////////////////////////////////////////////////////////////////////////////////
 /* Bluetooth Scanner */
-// void start_bluetooth_scanner() {
-//   /** Start the bluetooth scanner
-//   * Initialise the bluetooth module in AP -> Master mode to scan for passing
-//   * devices.
-//   * Inquiry time is configurable and the results can be filtered by BT class.
-//   */
-//
-//   Log.Debug(P("Starting Bluetooth at %d baud"), BLUETOOTH_BAUD);
-//   bluetooth.begin(BLUETOOTH_BAUD);
-//   bluetooth.listen();
-//
-//   // Put BT module into master mode for scanning
-//   Log.Debug(P("Entering config..."));
-//   bluetooth.write(P("$$$"));
-//   bluetooth.flush();
-//   Log.Debug(P("Response: %s\n"), bluetooth.readString().c_str());
-//
-//   Log.Debug(P("Setting master mode..."));
-//   bluetooth.write(P("SM,1\n"));
-//   bluetooth.flush();
-//   Log.Debug(P("Response: %s\n"), bluetooth.readString().c_str());
-//
-//   // Set up regular scanning intervals
-//   timer.setInterval(BLUETOOTH_SCAN_INTERVAL, start_bluetooth_scan);
-// }
-//
-// void start_bluetooth_scan() {
-//   /** Initiliase a bluetooth device scan
-//   * Scan for nearby bluetooth networks.
-//   * The module will produce a list of devices when the specified scan duration
-//   * has elapsed.
-//   */
-//
-//   read_bluetooth_buffer();
-//   stop_bluetooth_read();
-//
-//   // Start the scan
-//   Log.Debug(P("Starting scan"));
-//   bluetooth.write(P("I,"));
-//   bluetooth.println(BLUETOOTH_SCAN_TIME);
-//   bluetooth.flush();
-//
-//   Log.Debug(P("Response: %s"), bluetooth.readString().c_str());
-//
-//   // Create a callback to grab the list when the module is finished scanning
-//   timer.setTimeout(BLUETOOTH_SCAN_TIME_MS, start_bluetooth_read);
-// }
-//
-// void start_bluetooth_read() {
-//   bluetooth_recording = true;
-//   bluetooth_index = 0;
-//   bluetooth.listen();
-//   read_bluetooth_buffer();
-// }
-//
-// void read_bluetooth_buffer() {
-//   if (bluetooth_recording) {
-//
-//     Log.Verbose("Buffer: %d", bluetooth_index);
-//
-//     while (bluetooth.available()) {
-//
-//       String string = bluetooth.readString().c_str();
-//       for (size_t i = 0; i < string.length(); i++) {
-//         if (bluetooth_index < BLUETOOTH_BUFFER_SIZE) {
-//           bluetooth_buffer[bluetooth_index] = string[i];
-//           bluetooth_index++;
-//
-//         } else {
-//           bluetooth_index = BLUETOOTH_BUFFER_SIZE - 1;
-//         }
-//       }
-//     }
-//
-//     timer.setTimeout(BLUETOOTH_CHECK_INTERVAL, read_bluetooth_buffer);
-//   }
-// }
-//
-// void stop_bluetooth_read() {
-//   bluetooth_recording = false;
-//   bluetooth_buffer[bluetooth_index] = '\0';
-//
-//   const char BLUETOOTH_HEADER[] = "\"id\":\"Blue\",\"data\":";
-//   Log.Info(P("%c{%s\"%s\"}%c"), PACKET_START, BLUETOOTH_HEADER, bluetooth_buffer,
-//            PACKET_END);
-// }
+void start_bluetooth_scanner() {
+  /** Start the bluetooth scanner
+  * Initialise the bluetooth module in AP -> Master mode to scan for passing
+  * devices.
+  * Inquiry time is configurable and the results can be filtered by BT class.
+  */
+
+  Log.Debug(P("Starting Bluetooth at %d baud"), BLUETOOTH_BAUD);
+  bluetooth.begin(BLUETOOTH_BAUD);
+  bluetooth.listen();
+
+  // Put BT module into master mode for scanning
+  Log.Debug(P("Entering config..."));
+  bluetooth.write(P("$$$"));
+  bluetooth.flush();
+  Log.Debug(P("Response: %s\n"), bluetooth.readString().c_str());
+
+  Log.Debug(P("Setting master mode..."));
+  bluetooth.write(P("SM,1\n"));
+  bluetooth.flush();
+  Log.Debug(P("Response: %s\n"), bluetooth.readString().c_str());
+
+  // Set up regular scanning intervals
+  timer.setInterval(BLUETOOTH_SCAN_INTERVAL, start_bluetooth_scan);
+}
+
+void start_bluetooth_scan() {
+  /** Initiliase a bluetooth device scan
+  * Scan for nearby bluetooth networks.
+  * The module will produce a list of devices when the specified scan duration
+  * has elapsed.
+  */
+
+  read_bluetooth_buffer();
+  stop_bluetooth_read();
+
+  // Start the scan
+  Log.Debug(P("Starting scan"));
+  bluetooth.write(P("I,"));
+  bluetooth.println(BLUETOOTH_SCAN_TIME);
+  bluetooth.flush();
+
+  Log.Debug(P("Response: %s"), bluetooth.readString().c_str());
+
+  // Create a callback to grab the list when the module is finished scanning
+  timer.setTimeout(BLUETOOTH_SCAN_TIME_MS, start_bluetooth_read);
+}
+
+void start_bluetooth_read() {
+  bluetooth_recording = true;
+  bluetooth_index = 0;
+  bluetooth.listen();
+  read_bluetooth_buffer();
+}
+
+void read_bluetooth_buffer() {
+  if (bluetooth_recording) {
+
+    Log.Verbose("Buffer: %d", bluetooth_index);
+
+    while (bluetooth.available()) {
+
+      String string = bluetooth.readString().c_str();
+      for (size_t i = 0; i < string.length(); i++) {
+        if (bluetooth_index < BLUETOOTH_BUFFER_SIZE) {
+          bluetooth_buffer[bluetooth_index] = string[i];
+          bluetooth_index++;
+
+        } else {
+          bluetooth_index = BLUETOOTH_BUFFER_SIZE - 1;
+        }
+      }
+    }
+
+    timer.setTimeout(BLUETOOTH_CHECK_INTERVAL, read_bluetooth_buffer);
+  }
+}
+
+void stop_bluetooth_read() {
+  bluetooth_recording = false;
+  bluetooth_buffer[bluetooth_index] = '\0';
+
+  const char BLUETOOTH_HEADER[] = "\"id\":\"Blue\",\"data\":";
+  Log.Info(P("%c{%s\"%s\"}%c"), PACKET_START, BLUETOOTH_HEADER, bluetooth_buffer,
+           PACKET_END);
+}

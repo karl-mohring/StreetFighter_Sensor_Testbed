@@ -17,7 +17,7 @@ const bool CURRENT_MONITOR_ENABLED = false;
 const bool LAMP_CONTROL_ENABLED = false;
 
 // Comms
-const bool BLUETOOTH_ENABLED = false;
+const bool BLUETOOTH_ENABLED = true;
 const bool XBEE_ENABLED = false;
 
 // Traffic
@@ -29,7 +29,7 @@ const bool THERMO_FLOW_ENABLED = true;
 // Comms
 const int YUN_BOOT_DELAY = 5000; //Time to wait for Yun to boot up before checking the handshake
 const long YUN_LINUX_BAUD_RATE = 250000;
-const int COMM_BUFFER_SIZE = 300;
+const int COMM_BUFFER_SIZE = 250;
 const int BLUETOOTH_BUFFER_SIZE = 300;
 
 const long SERIAL_BAUD = 57600;
@@ -207,6 +207,7 @@ int get_lidar_range();
 void update_lidar();
 
 void start_pir();
+void warm_up_pir_sensors();
 void update_pir();
 void increment_pir_count(int sensor_num);
 void increment_narrow_pir(int sensor_num);

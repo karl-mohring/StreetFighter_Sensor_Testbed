@@ -8,11 +8,11 @@ const byte UNIT_ID = 1;
 const char UNIT_NAME[] = "Quezacoatl";
 
 // Use Serial for debug; Serial1 for normal operation
-#define USE_SERIAL Serial
-const int LOGGER_LEVEL = LOG_LEVEL_VERBOSE;
+#define USE_SERIAL Serial1
+const int LOGGER_LEVEL = LOG_LEVEL_INFOS;
 
 // Misc
-const bool REAL_TIME_CLOCK_ENABLED = true;
+    const bool REAL_TIME_CLOCK_ENABLED = true;
 const bool CURRENT_MONITOR_ENABLED = false;
 const bool LAMP_CONTROL_ENABLED = false;
 
@@ -21,11 +21,10 @@ const bool BLUETOOTH_ENABLED = true;
 const bool XBEE_ENABLED = false;
 
 // Traffic
-const bool PIR_ENABLED = false;
+const bool PIR_ENABLED = true;
 const bool LIDAR_ENABLED = true;
-const bool THERMO_FLOW_ENABLED = true;
+const bool THERMO_FLOW_ENABLED = false;
 
-///////////////////////////////////////////////////////////////////////////////
 // Comms
 const int YUN_BOOT_DELAY = 5000; //Time to wait for Yun to boot up before checking the handshake
 const long YUN_LINUX_BAUD_RATE = 250000;
@@ -34,7 +33,7 @@ const int BLUETOOTH_BUFFER_SIZE = 300;
 
 const long SERIAL_BAUD = 57600;
 
-// XBee Socket 1
+// XBee Socket
 const long XBEE_BAUD = 9600;
 enum XBEE_1_COMMS{
     UART = 0,
@@ -82,7 +81,7 @@ const int RANGE_DETECT_THRESHOLD = 70; // Minimum threshold for range detection 
 const int LIDAR_CHECK_RANGE_INTERVAL = 100;
 const int LIDAR_DETECT_THRESHOLD = 50;
 
-const long PRINT_INTERVAL = 5000;
+const long PRINT_INTERVAL = 60000;
 const long CHECK_ENVIRONMENTAL_SENSOR_INTERVAL = PRINT_INTERVAL/2;
 const long XBEE_TRANSMIT_INTERVAL = PRINT_INTERVAL; // Time between XBee transmissions
 const long SYSTEM_CLOCK_UPDATE_INTERVAL = 60000;
@@ -140,7 +139,7 @@ const long PIR_MIN_FLOW_DELAY = 500;    // Minimum time to allow an object to fl
 const byte THERM_ROWS = 4;
 const byte THERM_COLS = 16;
 const int THERM_FRAMERATE = 16;
-const int THERM_FRAME_UPDATE_INTERVAL = 1000 / THERM_FRAMERATE;
+const int THERM_FRAME_UPDATE_INTERVAL = 250;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Current Monitor

@@ -5,7 +5,6 @@
 
 #include <ArduinoJson.h>
 #include <LIDARduino.h>
-#include "MLX90621.h"
 #include "ProgmemString.h"
 #include "Logging.h"
 #include "SimpleTimer.h"
@@ -21,7 +20,6 @@ SoftwareSerial bluetooth(COMM_2_RX, COMM_2_TX);
 // Traffic Sensors
 LIDAR_Lite_PWM lidar(LIDAR_TRIGGER_PIN, LIDAR_PWM_PIN);
 static int successive_lidar_detections = 0;
-MLX90621 thermal_flow_sensor;
 
 // Misc
 RTC_DS3231 rtc;
@@ -43,6 +41,7 @@ SensorEntry data;
 
 ////////////////////////////////////////////////////////////////////////////////
 /* Arduino main functions */
+
 void setup() {
   /**
   * Startup code - Run once
@@ -50,8 +49,7 @@ void setup() {
   data.id = UNIT_NAME;
   data.version = SSL_TESTBED_VERSION;
 
-   start_yun_serial();
-  Log.Init(LOG_LEVEL_DEBUG, 57600);
+  start_yun_serial();
   Log.Info(P("Traffic Counter - ver %d"), SSL_TESTBED_VERSION);
 
   if (REAL_TIME_CLOCK_ENABLED) {
@@ -78,6 +76,7 @@ void loop() {
 
 ////////////////////////////////////////////////////////////////////////////////
 /* Yun Serial */
+
 void start_yun_serial() {
   /**
   * Set up the Arduino-Linux serial bridge
@@ -137,6 +136,7 @@ void boot_status_change_ISR() {
 
 ////////////////////////////////////////////////////////////////////////////////
 /* XBee Comms */
+
 void start_xbee() {
   /**
   * Start up xbee communication
@@ -150,17 +150,12 @@ void start_xbee() {
 
 ////////////////////////////////////////////////////////////////////////////////
 /* Printing */
+
 void start_sensors() {
   /**
   * Enable and configure the sensor suite for reading.
   * A timer is started to regularly print sensor data
   */
-
-  // Environment
-  if (THERMO_FLOW_ENABLED) {
-    start_thermal_flow();
-    start_case_temperature();
-  }
 
   if (LIDAR_ENABLED) {
     start_lidar();
@@ -222,7 +217,6 @@ void print_json_string() {
   entry["cool_r"] = data.pir_in_cooldown[PIR_WIDE_RIGHT];
   entry["lidar"] = data.lidar_count;
   entry["l_range"] = data.lidar_range;
-  entry["t_case"] = data.case_temperature;
   entry["timestamp"] = data.timestamp;
 
   if (Log.getLevel() > LOG_LEVEL_NOOUTPUT) {
@@ -242,6 +236,7 @@ void print_json_string() {
 
 ////////////////////////////////////////////////////////////////////////////////
 /* PIR */
+
 void start_pir() {
   /**
   * Start the PIR motion sensor for motion detections
@@ -310,6 +305,7 @@ void update_pir() {
           data.pir_in_cooldown[i] = true;
           increment_pir_count(i);
           Log.Info("Sensor %d triggered. Count: %l", i, data.pir_count[i]);
+          trigger_traffic_event();
         }
 
         else {
@@ -383,6 +379,7 @@ void increment_wide_pir(int sensor_num){
 
 ////////////////////////////////////////////////////////////////////////////////
 /* Lidar */
+
 void start_lidar() {
   /**
   * Start the rangefinder sensor
@@ -490,50 +487,8 @@ void update_lidar() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-/* Thermal Flow */
-void start_thermal_flow(){
-    Wire.begin();
-    thermal_flow_sensor.initialise(THERM_FRAMERATE);
-
-    timer.setInterval(THERM_FRAME_UPDATE_INTERVAL, get_frame);
-}
-
-void get_frame(){
-    // Prepend the frame packet with it's tags
-    USE_SERIAL.print(PACKET_START);
-    USE_SERIAL.print(P("{id:thermal, data:"));
-    // for (int i = 0; i < 64; i++) {
-    //     USE_SERIAL.print(thermal_flow_sensor.irData[i]);
-    //     if (i < 63) {
-    //         USE_SERIAL.print(",");
-    //     }
-    // }
-    thermal_flow_sensor.print_temperatures(USE_SERIAL);
-    USE_SERIAL.print("}\n\n");
-}
-
-void start_case_temperature() {
-  /**
-  * Start the road temperature sensor
-  */
-  timer.setInterval(CHECK_ENVIRONMENTAL_SENSOR_INTERVAL, update_case_temperature);
-  update_case_temperature();
-}
-
-void update_case_temperature() {
-  /**
-  * Read the road temperature into the entry
-  */
-  // data.case_temperature = get_case_temperature();
-  // Log.Info("Ambient temperature: %d.%d degC", int(data.case_temperature), int((data.case_temperature - int(data.case_temperature))*100));
-}
-
-float get_case_temperature(){
-    return thermal_flow_sensor.get_ambient_temperature();
-}
-
-////////////////////////////////////////////////////////////////////////////////
 /* RTC */
+
 void start_rtc() {
   /**
   * Start up the real-time clock
@@ -589,6 +544,7 @@ void update_system_clock() {
 
 ////////////////////////////////////////////////////////////////////////////////
 /* Bluetooth Scanner */
+
 void start_bluetooth_scanner() {
   /** Start the bluetooth scanner
   * Initialise the bluetooth module in AP -> Master mode to scan for passing
@@ -629,7 +585,6 @@ void start_bluetooth_scan() {
   Log.Debug(P("Starting scan"));
   bluetooth.write(P("I,"));
   bluetooth.println(BLUETOOTH_SCAN_TIME);
-  bluetooth.flush();
 
   Log.Debug(P("Response: %s"), bluetooth.readString().c_str());
 
@@ -646,8 +601,6 @@ void start_bluetooth_read() {
 
 void read_bluetooth_buffer() {
   if (bluetooth_recording) {
-
-    Log.Verbose("Buffer: %d", bluetooth_index);
 
     while (bluetooth.available()) {
 

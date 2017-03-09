@@ -1,15 +1,15 @@
-#include "Arduino.h"
 #include <Logging.h>
+#include "Arduino.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Unit
 const int SSL_TESTBED_VERSION = 9;
 const byte UNIT_ID = 1;
-const char UNIT_NAME[] = "Quetzacoatl";
+const char UNIT_NAME[] = "Quetzalcoatl";
 
 // Use Serial for debug; Serial1 for normal operation
 #define USE_SERIAL Serial1
-const int LOGGER_LEVEL = LOG_LEVEL_INFOS;
+const int LOGGER_LEVEL = LOG_LEVEL_VERBOSE;
 
 // Misc
 const bool REAL_TIME_CLOCK_ENABLED = true;
@@ -26,8 +26,7 @@ const bool LIDAR_ENABLED = true;
 const bool THERMO_FLOW_ENABLED = false;
 
 // Comms
-const int YUN_BOOT_DELAY =
-    5000; // Time to wait for Yun to boot up before checking the handshake
+const int YUN_BOOT_DELAY = 5000;  // Time to wait for Yun to boot up before checking the handshake
 const long YUN_LINUX_BAUD_RATE = 250000;
 const int COMM_BUFFER_SIZE = 250;
 const int BLUETOOTH_BUFFER_SIZE = 300;
@@ -44,63 +43,48 @@ const long BLUETOOTH_BAUD = 9600;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Pin assignments
-const byte YUN_RX = 0;   // Unused Pin - Tied to USB UART
-const byte YUN_TX = 1;   // Unused Pin - Tied to USB UART
-const byte SPI_ATTN = 4; // SPI Attention pin for XBEE-SPI comms
-const byte SPI_SS = 5;   // SPI Slave Select
-const byte LAMP_CONTROL_PIN =
-    6; // Lamp control - uses PWM with inverse duty cycle
-const byte YUN_HANDSHAKE_PIN =
-    7;                         // Yun handshake - HIGH when Yun is busy/booting
-const byte XBEE_SLEEP_PIN = 8; // XBEE sleep pin; Bring HIGH to allow XBEE comms
-const byte WIDE_PIR_PIN_L =
-    9; // PIR motion detect pin; pulled HIGH when motion is detected
-const byte COMM_2_TX = 10;         // Send pin for XBEE socket 2; UART-only
-const byte COMM_2_RX = 11;         // Receive pin for XBEE socket 2; UART-only
-const byte LIDAR_PWM_PIN = 12;     // Data pin for LIDARLite
-const byte LIDAR_TRIGGER_PIN = 13; // PWM Trigger pin for LIDARLite
-const byte COMM_1_RX =
-    14; // Send pin for XBEE socket 1; UART and SPI compatible
-const byte COMM_1_TX =
-    16; // Receive pin for XBEE socket 1; UART and SPI compatible
-
-const byte WIDE_PIR_PIN_R = A0; // Sonar receive pin - can use pulse width or
-                                // ADC for distance measurements
+const byte YUN_RX = 0;              // Unused Pin - Tied to USB UART
+const byte YUN_TX = 1;              // Unused Pin - Tied to USB UART
+const byte SPI_ATTN = 4;            // SPI Attention pin for XBEE-SPI comms
+const byte SPI_SS = 5;              // SPI Slave Select
+const byte LAMP_CONTROL_PIN = 6;    // Lamp control - uses PWM with inverse duty cycle
+const byte YUN_HANDSHAKE_PIN = 7;   // Yun handshake - HIGH when Yun is busy/booting
+const byte XBEE_SLEEP_PIN = 8;      // XBEE sleep pin; Bring HIGH to allow XBEE comms
+const byte WIDE_PIR_PIN_L = 9;      // PIR motion detect pin; pulled HIGH when motion is detected
+const byte COMM_2_TX = 10;          // Send pin for XBEE socket 2; UART-only
+const byte COMM_2_RX = 11;          // Receive pin for XBEE socket 2; UART-only
+const byte LIDAR_PWM_PIN = 12;      // Data pin for LIDARLite
+const byte LIDAR_TRIGGER_PIN = 13;  // PWM Trigger pin for LIDARLite
+const byte COMM_1_RX = 14;          // Send pin for XBEE socket 1; UART and SPI compatible
+const byte COMM_1_TX = 16;          // Receive pin for XBEE socket 1; UART and SPI compatible
+const byte WIDE_PIR_PIN_R = A0;     // Sonar receive pin - can use pulse width or ADC for distance measurements
 const byte NARROW_PIR_PIN = A1;
-const byte HUMIDITY_PIN = A3; // Humidity level pin - Gives ADC humidity level
-const byte TEMPERATURE_PIN =
-    A4; // Temperature data pin for DS18B20 digital temperature probe
-const byte CURRENT_DETECT_PIN =
-    A5; // Current monitor pin for current clamp - gives offset ADC current wave
+const byte HUMIDITY_PIN = A3;        // Humidity level pin - Gives ADC humidity level
+const byte TEMPERATURE_PIN = A4;     // Temperature data pin for DS18B20 digital temperature probe
+const byte CURRENT_DETECT_PIN = A5;  // Current monitor pin for current clamp - gives offset ADC current wave
 
 ///////////////////////////////////////////////////////////////////////////////
 // Timer
 
 const int CHECK_FLOW_INTERVAL = 200;
-const int FLOW_COOLDOWN = 2000; // Optical flow detection cooldown in ms
+const int FLOW_COOLDOWN = 2000;  // Optical flow detection cooldown in ms
 
 const int CHECK_RANGE_INTERVAL = 100;
-const int RANGE_DETECT_THRESHOLD = 70; // Minimum threshold for range detection
-                                       // in cm. (Target must move at least this
-                                       // much)
+const int RANGE_DETECT_THRESHOLD =
+    70;  // Minimum threshold for range detection in cm. (Target must move at least this much)
 
 const int LIDAR_CHECK_RANGE_INTERVAL = 100;
 const int LIDAR_DETECT_THRESHOLD = 50;
 
 const long PRINT_INTERVAL = 60000;
 const long CHECK_ENVIRONMENTAL_SENSOR_INTERVAL = PRINT_INTERVAL / 2;
-const long XBEE_TRANSMIT_INTERVAL =
-    PRINT_INTERVAL; // Time between XBee transmissions
+const long XBEE_TRANSMIT_INTERVAL = PRINT_INTERVAL;  // Time between XBee transmissions
 const long SYSTEM_CLOCK_UPDATE_INTERVAL = 60000;
 
-const int BLUETOOTH_SCAN_TIME = 5; // Bluetooth scan duration in seconds
-const long BLUETOOTH_SCAN_TIME_MS =
-    BLUETOOTH_SCAN_TIME * 1000; // Length of a bluetooth scan in milliseconds
-const long BLUETOOTH_SCAN_INTERVAL =
-    BLUETOOTH_SCAN_TIME_MS +
-    6000; // Time between bluetooth scans in milliseconds
-const long BLUETOOTH_CHECK_INTERVAL =
-    20; // Time between bluetooth response checks
+const int BLUETOOTH_SCAN_TIME = 5;                                   // Bluetooth scan duration in seconds
+const long BLUETOOTH_SCAN_TIME_MS = BLUETOOTH_SCAN_TIME * 1000;      // Length of a bluetooth scan in milliseconds
+const long BLUETOOTH_SCAN_INTERVAL = BLUETOOTH_SCAN_TIME_MS + 6000;  // Time between bluetooth scans in milliseconds
+const long BLUETOOTH_CHECK_INTERVAL = 20;                            // Time between bluetooth response checks
 const long BLUETOOTH_SERIAL_WAIT = 1000;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -110,42 +94,35 @@ const int DATETIME_WIDTH = 20;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Sonar/Lidar
-const byte MIN_BASELINE_READS =
-    20; // Minimum number of reads needed to establish a baseline
-const byte MAX_BASELINE_READS =
-    30; // Maximum number of reads to establishe a baseline
-const int BASELINE_READ_INTERVAL =
-    200; // Time between range baseline calibration reads in milliseconds
-const int BASELINE_VARIANCE_THRESHOLD =
-    20; // Maximum acceptable range sensor baseline error in cm.
-const byte MIN_SUCCESSIVE_LIDAR_READS =
-    0; // Number of consecutive lidar reads that will result in a 'detection'
+const byte MIN_BASELINE_READS = 20;          // Minimum number of reads needed to establish a baseline
+const byte MAX_BASELINE_READS = 30;          // Maximum number of reads to establishe a baseline
+const int BASELINE_READ_INTERVAL = 200;      // Time between range baseline calibration reads in milliseconds
+const int BASELINE_VARIANCE_THRESHOLD = 20;  // Maximum acceptable range sensor baseline error in cm.
+const byte MIN_SUCCESSIVE_LIDAR_READS = 0;   // Number of consecutive lidar reads that will result in a 'detection'
 
 ///////////////////////////////////////////////////////////////////////////////
 // PIR
 
 enum PIR_TYPE { PIR_WIDE = 0, PIR_NARROW = 1 };
-
 enum PIR_SIDE_INDEX { PIR_WIDE_LEFT = 0, PIR_WIDE_RIGHT = 2 };
-
 const byte NUM_PIR_SENSORS = 3;
-const byte PIR_PINS[NUM_PIR_SENSORS] = {WIDE_PIR_PIN_L, NARROW_PIR_PIN,
-                                        WIDE_PIR_PIN_R};
-const byte PIR_TYPES[NUM_PIR_SENSORS] = {PIR_WIDE, PIR_NARROW, PIR_WIDE};
-const bool PIR_ACTIVE_STATES[NUM_PIR_SENSORS] = {HIGH, HIGH, HIGH};
-const bool PIR_MUST_GO_LOW_BETWEEN_TRIGGERS = false;
-const unsigned long PIR_COOLDOWNS[NUM_PIR_SENSORS] = {5000, 2500, 5000};
+const byte PIR_TYPES[NUM_PIR_SENSORS] = {PIR_NARROW, PIR_WIDE, PIR_WIDE};
+const unsigned long NARROW_PIR_COOLDOWN = 2500;
+const unsigned long WIDE_PIR_COOLDOWN = 6000;
+const int NARROW_PIR_FOV = 38;
+const int WIDE_PIR_FOV = 110;
+const float MOUNTING_HEIGHT = 6.0;
+const float WALKING_SPEED = 5.0;
 
-const int CHECK_MOTION_INTERVAL = 100; // Time between sensor checks in ms.
+const int CHECK_MOTION_INTERVAL = 100;  // Time between sensor checks in ms.
 
-const long MOTION_INITIALISATION_TIME =
-    10000; // Time given for PIR sensor to calibrate in ms.
+const long MOTION_INITIALISATION_TIME = 10000;  // Time given for PIR sensor to calibrate in ms.
 const byte MOTION_INITIALISATION_INTERVALS = 5;
-const long PIR_MAX_FLOW_DELAY = 2000; // Maximum time to allow an object to flow
-                                      // across the motion detection areas and
-                                      // count as a flow detection
-const long PIR_MIN_FLOW_DELAY = 500;  // Minimum time to allow an object to flow
-                                      // across. Prevents weird side events
+const long PIR_MAX_FLOW_DELAY = 2000;  // Maximum time to allow an object to flow
+                                       // across the motion detection areas and
+                                       // count as a flow detection
+const long PIR_MIN_FLOW_DELAY = 500;   // Minimum time to allow an object to flow
+                                       // across. Prevents weird side events
 
 ///////////////////////////////////////////////////////////////////////////////
 // Thermal Flow
@@ -157,10 +134,9 @@ const int THERM_FRAME_UPDATE_INTERVAL = 250;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Current Monitor
-const int TRANSFORMER_RATIO = 2000; // The ratio of the current transformer
-const int BURDEN_RESISTOR = 2200;   // Value of the burden resistor in Ohms
-const int CURRENT_SAMPLES =
-    1000; // Number of ADC samples taken when measuring current
+const int TRANSFORMER_RATIO = 2000;  // The ratio of the current transformer
+const int BURDEN_RESISTOR = 2200;    // Value of the burden resistor in Ohms
+const int CURRENT_SAMPLES = 1000;    // Number of ADC samples taken when measuring current
 const double CURRENT_CALIBRATION_FACTOR = TRANSFORMER_RATIO / BURDEN_RESISTOR;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -173,30 +149,31 @@ const char PACKET_END = '$';
 // Lamp Dimming
 const byte ACTIVE_BRIGHTNESS = 255;
 const byte INACTIVE_BRIGHTNESS = ACTIVE_BRIGHTNESS * 0.2;
-const long LAMP_ACTIVE_TIME = 300;       // Active timeout in seconds
-const int LAMP_TRANSITION_UP_PERIOD = 2; // Time between transition steps when
-                                         // going from low to high brightness in
-                                         // ms
-const int LAMP_TRANSISTION_DOWN_PERIOD = 20; // Time between transition steps
-                                             // when going from high to low
-                                             // brightness in ms
-const int LAMP_TRANSITION_STEP_UP = 1; // Transition step in 8-bit levels
+const long LAMP_ACTIVE_TIME = 300;            // Active timeout in seconds
+const int LAMP_TRANSITION_UP_PERIOD = 2;      // Time between transition steps when
+                                              // going from low to high brightness in
+                                              // ms
+const int LAMP_TRANSISTION_DOWN_PERIOD = 20;  // Time between transition steps
+                                              // when going from high to low
+                                              // brightness in ms
+const int LAMP_TRANSITION_STEP_UP = 1;        // Transition step in 8-bit levels
 const int LAMP_TRANSITION_STEP_DOWN = LAMP_TRANSITION_STEP_UP;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Data structures
 struct SensorEntry {
-  const char *id;
-  int version;
-  bool event_flag;
-  long pir_count[NUM_PIR_SENSORS];
-  bool pir_in_cooldown[NUM_PIR_SENSORS];
-  long lidar_count;
-  int lidar_range;
-  int lidar_baseline;
-  float case_temperature;
-  float road_temperature;
-  char timestamp[DATETIME_WIDTH];
+    const char *id;
+    int version;
+    bool event_flag;
+    long lidar_count;
+    int lidar_range;
+    int lidar_baseline;
+    float case_temperature;
+    float road_temperature;
+    long pir_pedestrian;
+    long pir_vehicle;
+    long pir_error;
+    char timestamp[DATETIME_WIDTH];
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -226,6 +203,13 @@ void update_pir();
 void increment_pir_count(int sensor_num);
 void increment_narrow_pir(int sensor_num);
 void increment_wide_pir(int sensor_num);
+void narrow_event_start();
+void narrow_event_end();
+void wide_event_start();
+void wide_cooldown_finished();
+unsigned long get_most_recent_wide_event();
+void cancel_pedestrian_timeout();
+bool is_pir_clear();
 
 void start_air_temperature();
 void update_air_temperature();

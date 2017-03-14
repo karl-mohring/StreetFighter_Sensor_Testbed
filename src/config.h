@@ -9,7 +9,7 @@ const char UNIT_NAME[] = "Quetzalcoatl";
 
 // Use Serial for debug; Serial1 for normal operation
 #define USE_SERIAL Serial1
-const int LOGGER_LEVEL = LOG_LEVEL_VERBOSE;
+const int LOGGER_LEVEL = LOG_LEVEL_INFOS;
 
 // Misc
 const bool REAL_TIME_CLOCK_ENABLED = true;
@@ -193,8 +193,7 @@ void print_data();
 void print_json_string();
 
 void start_lidar();
-int get_lidar_baseline(int variance);
-int get_lidar_range();
+long get_lidar_range();
 void update_lidar();
 
 void start_pir();

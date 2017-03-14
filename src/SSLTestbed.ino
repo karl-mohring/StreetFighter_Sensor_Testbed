@@ -8,6 +8,7 @@
 #include "PIR.h"
 #include "ProgmemString.h"
 #include "SimpleTimer.h"
+#include "Tripwire.h"
 
 #include "config.h"
 
@@ -19,6 +20,7 @@ SoftwareSerial bluetooth(COMM_2_RX, COMM_2_TX);
 
 // Traffic Sensors
 LIDAR_Lite_PWM lidar(LIDAR_TRIGGER_PIN, LIDAR_PWM_PIN);
+Tripwire lidar_tripwire(get_lidar_range);
 static int successive_lidar_detections = 0;
 
 // Misc
@@ -216,11 +218,11 @@ void print_json_string() {
     entry["npir"] = narrow.num_detections;
     entry["wpir_l"] = wide_left.num_detections;
     entry["wpir_r"] = wide_right.num_detections;
-    // entry["cool_n"] = narrow.is_in_cooldown;
-    // entry["cool_l"] = wide_left.is_in_cooldown;
-    // entry["cool_r"] = wide_right.is_in_cooldown;
-    entry["lidar"] = data.lidar_count;
-    entry["l_range"] = data.lidar_range;
+    entry["cool_n"] = narrow.is_in_cooldown;
+    entry["cool_l"] = wide_left.is_in_cooldown;
+    entry["cool_r"] = wide_right.is_in_cooldown;
+    entry["lidar"] = lidar_tripwire.num_detections;
+    entry["l_range"] = lidar_tripwire.distance;
     entry["ped"] = data.pir_pedestrian;
     entry["veh"] = data.pir_vehicle;
     entry["timestamp"] = data.timestamp;
@@ -379,8 +381,6 @@ void update_pir() {
     narrow.update();
     wide_left.update();
     wide_right.update();
-
-    Log.Info("State: %T", narrow.state);
 }
 
 bool is_pir_clear() {
@@ -404,98 +404,38 @@ void start_lidar() {
     pinMode(LIDAR_PWM_PIN, INPUT);
     lidar.begin();
 
+    lidar_tripwire.distance_threshold = LIDAR_DETECT_THRESHOLD;
+    lidar_tripwire.max_baseline_variance = BASELINE_VARIANCE_THRESHOLD;
+    lidar_tripwire.min_successive_detections = MIN_SUCCESSIVE_LIDAR_READS;
+    lidar_tripwire.min_baseline_reads = MIN_BASELINE_READS;
+    lidar_tripwire.max_baseline_reads = MAX_BASELINE_READS;
+    lidar_tripwire.baseline_read_interval = BASELINE_READ_INTERVAL;
+
+    lidar_tripwire.start();
     Log.Debug(P("Lidar - Establishing baseline range..."));
-    data.lidar_baseline = get_lidar_baseline(BASELINE_VARIANCE_THRESHOLD);
+    lidar_tripwire.calibrate();
+    Log.Debug(P("Lidar - Baseline range: %d\tvariance: %d"), lidar_tripwire.baseline_distance,
+              lidar_tripwire.baseline_variance);
 
-    timer.setInterval(LIDAR_CHECK_RANGE_INTERVAL, update_lidar);
-    data.lidar_count = 0;
-    data.lidar_range = 0;
-
-    if (data.lidar_baseline > LIDAR_DETECT_THRESHOLD) {
-        Log.Info(P("Lidar started - Baseline: %dcm"), data.lidar_baseline);
-    } else {
-        data.lidar_baseline = 0;
-        Log.Error(P("Lidar initialisation failed - sensor disabled"));
+    if (lidar_tripwire.is_calibrated) {
+        lidar_tripwire.set_event_start_callback(narrow_event_start);
+        timer.setInterval(LIDAR_CHECK_RANGE_INTERVAL, update_lidar);
     }
 
-    update_lidar();
+    lidar_tripwire.update();
 }
 
-int get_lidar_baseline(int variance) {
-    /**
-    * Establish the baseline range from the lidar to the ground
-    * The sensor will take samples until the readings are consistent
-    * :variance: Max allowed variance of the baseline in cm
-    * :return: Average variance of the baseline in cm
-    */
-    int average_range = get_lidar_range();
-    int baseline_reads = 1;
-    int average_variance = 500;
-
-    // Keep reading in the baseline until it stablises
-    while ((baseline_reads < MIN_BASELINE_READS || average_variance > variance) &&
-           baseline_reads < MAX_BASELINE_READS) {
-        int new_range = get_lidar_range();
-        int new_variance = abs(average_range - new_range);
-
-        average_variance = ((average_variance + new_variance) / 2);
-        average_range = ((average_range + new_range) / 2);
-
-        Log.Debug(P("Lidar Calibration: Range - %d, Variance - %d"), int(average_range), average_variance);
-        baseline_reads++;
-        delay(BASELINE_READ_INTERVAL);
-    }
-
-    // Calibration fails if the range is varying too much
-    if (average_variance > variance) {
-        average_range = -1;
-    }
-
-    return average_range;
-}
-
-int get_lidar_range() {
+long get_lidar_range() {
     /**
     * Get the range in cm from the lidar
     * :return: Target distance from sensor in cm
     */
     int target_distance = lidar.getDistance();
     Log.Verbose(P("Lidar Range: %d cm"), target_distance);
-    return target_distance;
+    return long(target_distance);
 }
 
-void update_lidar() {
-    /**
-    * Check the lidar to see if a traffic event has occurred.
-    * Traffic events are counted as a break in the sensor's 'view' of the ground.
-    * Any object between the sensor and the ground baseline will cause the sensor
-    * to register a shorter range than usual.
-    */
-    data.lidar_range = get_lidar_range();
-
-    // Detection occurs when target breaks the LoS to the baseline
-    if ((data.lidar_baseline - data.lidar_range) > RANGE_DETECT_THRESHOLD) {
-        // If x in a row
-        if (successive_lidar_detections == MIN_SUCCESSIVE_LIDAR_READS) {
-            successive_lidar_detections += 1;
-
-            // Increase traffic count
-            data.lidar_count++;
-            Log.Info(P("Traffic count - Lidar: %d counts"), data.lidar_count);
-
-            // Also send an XBee alert
-            trigger_traffic_event();
-        }
-
-        else if (successive_lidar_detections < MIN_SUCCESSIVE_LIDAR_READS) {
-            successive_lidar_detections += 1;
-        }
-    }
-
-    else {
-        successive_lidar_detections = 0;
-    }
-}
+void update_lidar() { lidar_tripwire.update(); }
 
 ////////////////////////////////////////////////////////////////////////////////
 /* RTC */

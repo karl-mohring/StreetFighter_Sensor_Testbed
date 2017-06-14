@@ -3,13 +3,13 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 // Unit
-const int SSL_TESTBED_VERSION = 9;
+const char SSL_TESTBED_VERSION[] = "20170608";
 const byte UNIT_ID = 1;
 const char UNIT_NAME[] = "Quetzalcoatl";
 
 // Use Serial for debug; Serial1 for normal operation
 #define USE_SERIAL Serial1
-const int LOGGER_LEVEL = LOG_LEVEL_INFOS;
+const int LOGGER_LEVEL = LOG_LEVEL_DEBUG;
 
 // Misc
 const bool REAL_TIME_CLOCK_ENABLED = true;
@@ -17,7 +17,7 @@ const bool CURRENT_MONITOR_ENABLED = false;
 const bool LAMP_CONTROL_ENABLED = false;
 
 // Comms
-const bool BLUETOOTH_ENABLED = true;
+const bool BLUETOOTH_ENABLED = false;
 const bool XBEE_ENABLED = false;
 
 // Traffic
@@ -28,7 +28,7 @@ const bool THERMO_FLOW_ENABLED = false;
 // Comms
 const int YUN_BOOT_DELAY = 5000;  // Time to wait for Yun to boot up before checking the handshake
 const long YUN_LINUX_BAUD_RATE = 250000;
-const int COMM_BUFFER_SIZE = 250;
+const int COMM_BUFFER_SIZE = 400;
 const int BLUETOOTH_BUFFER_SIZE = 300;
 
 const long SERIAL_BAUD = 57600;
@@ -73,8 +73,9 @@ const int CHECK_RANGE_INTERVAL = 100;
 const int RANGE_DETECT_THRESHOLD =
     70;  // Minimum threshold for range detection in cm. (Target must move at least this much)
 
-const int LIDAR_CHECK_RANGE_INTERVAL = 100;
+const int LIDAR_CHECK_RANGE_INTERVAL = 50;
 const int LIDAR_DETECT_THRESHOLD = 50;
+const long LIDAR_COOLDOWN = 500;
 
 const long PRINT_INTERVAL = 60000;
 const long CHECK_ENVIRONMENTAL_SENSOR_INTERVAL = PRINT_INTERVAL / 2;
@@ -99,6 +100,8 @@ const byte MAX_BASELINE_READS = 30;          // Maximum number of reads to estab
 const int BASELINE_READ_INTERVAL = 200;      // Time between range baseline calibration reads in milliseconds
 const int BASELINE_VARIANCE_THRESHOLD = 20;  // Maximum acceptable range sensor baseline error in cm.
 const byte MIN_SUCCESSIVE_LIDAR_READS = 0;   // Number of consecutive lidar reads that will result in a 'detection'
+const int TRIPWIRE_MIN_DETECT_DISTANCE = 100;
+const int TRIPWIRE_MAX_DETECT_DISTANCE = 700;
 
 ///////////////////////////////////////////////////////////////////////////////
 // PIR

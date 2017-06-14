@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <ArduinoJson.h>
 #include <LIDARduino.h>
 #include <RTClib.h>
 #include <SoftwareSerial.h>
@@ -34,13 +33,9 @@ bool bluetooth_recording = false;
 SimpleTimer timer;
 
 // PIR variables
-PIR narrow(NARROW_PIR_PIN, NARROW_PIR_COOLDOWN, MOUNTING_HEIGHT, NARROW_PIR_FOV);
-PIR wide_left(WIDE_PIR_PIN_L, WIDE_PIR_COOLDOWN, MOUNTING_HEIGHT, WIDE_PIR_FOV);
-PIR wide_right(WIDE_PIR_PIN_R, WIDE_PIR_COOLDOWN, MOUNTING_HEIGHT, WIDE_PIR_FOV);
-
-bool pir_recording_event = false;
-bool pir_clear = true;
-bool pedestrian_timeout_active = false;
+PIR narrow(NARROW_PIR_PIN, NARROW_PIR_COOLDOWN, MOUNTING_HEIGHT, NARROW_PIR_FOV, "narrow");
+PIR wide_left(WIDE_PIR_PIN_L, WIDE_PIR_COOLDOWN, MOUNTING_HEIGHT, WIDE_PIR_FOV, "left");
+PIR wide_right(WIDE_PIR_PIN_R, WIDE_PIR_COOLDOWN, MOUNTING_HEIGHT, WIDE_PIR_FOV, "right");
 
 // Objects
 SensorEntry data;
@@ -52,11 +47,9 @@ void setup() {
     /**
     * Startup code - Run once
     */
-    data.id = UNIT_NAME;
-    data.version = SSL_TESTBED_VERSION;
 
     start_yun_serial();
-    Log.Info(P("Traffic Counter - ver %d"), SSL_TESTBED_VERSION);
+    Log.Info(P("Traffic Counter - ver %s"), SSL_TESTBED_VERSION);
 
     if (REAL_TIME_CLOCK_ENABLED) {
         start_rtc();
@@ -66,11 +59,19 @@ void setup() {
         start_xbee();
     }
 
-    start_sensors();
+    if (LIDAR_ENABLED) {
+        start_lidar();
+    }
+
+    if (PIR_ENABLED) {
+        start_pir();
+    }
 
     if (BLUETOOTH_ENABLED) {
         start_bluetooth_scanner();
     }
+
+    timer.setInterval(PRINT_INTERVAL, print_heartbeat_message);
 }
 
 void loop() {
@@ -157,89 +158,9 @@ void start_xbee() {
 ////////////////////////////////////////////////////////////////////////////////
 /* Printing */
 
-void start_sensors() {
-    /**
-    * Enable and configure the sensor suite for reading.
-    * A timer is started to regularly print sensor data
-    */
-
-    if (LIDAR_ENABLED) {
-        start_lidar();
-    }
-
-    if (PIR_ENABLED) {
-        start_pir();
-    }
-
-    // Start timer for regular entry transmission
-    timer.setInterval(PRINT_INTERVAL, print_regular_entry);
-}
-
-void print_regular_entry() {
-    /**
-    * Print a normal data entry
-    * Regular entries are triggered by timer, rather than sensor
-    * The traffic event flag is 'off'
-    */
-    data.event_flag = false;
-    print_data();
-}
-
-void trigger_traffic_event() {
-    /**
-    * Print a data entry
-    * The traffic event flag is enabled
-    */
-    data.event_flag = true;
-    print_data();
-}
-
-void print_data() {
-    /**
-    * Print the current traffic counts and info to Serial
-    */
-    if (REAL_TIME_CLOCK_ENABLED) {
-        update_timestamp();
-    }
-
-    print_json_string();
-}
-
-void print_json_string() {
-    /**
-    * Format the data packet into a JSON string
-    * @return JSON-formatted string containing selected data
-    */
-    StaticJsonBuffer<COMM_BUFFER_SIZE> print_buffer;
-    JsonObject &entry = print_buffer.createObject();
-
-    entry["ver"] = data.version;
-    entry["id"] = data.id;
-    entry["npir"] = narrow.num_detections;
-    entry["wpir_l"] = wide_left.num_detections;
-    entry["wpir_r"] = wide_right.num_detections;
-    entry["cool_n"] = narrow.is_in_cooldown;
-    entry["cool_l"] = wide_left.is_in_cooldown;
-    entry["cool_r"] = wide_right.is_in_cooldown;
-    entry["lidar"] = lidar_tripwire.num_detections;
-    entry["l_range"] = lidar_tripwire.distance;
-    entry["ped"] = data.pir_pedestrian;
-    entry["veh"] = data.pir_vehicle;
-    entry["timestamp"] = data.timestamp;
-
-    if (Log.getLevel() > LOG_LEVEL_NOOUTPUT) {
-        USE_SERIAL.print(PACKET_START);
-        entry.printTo(USE_SERIAL);
-        USE_SERIAL.println(PACKET_END);
-        USE_SERIAL.flush();
-    }
-
-    if (XBEE_ENABLED) {
-        // Push the JSON string to XBee as well
-        xbee_bridge.print(PACKET_START);
-        entry.printTo(xbee_bridge);
-        xbee_bridge.print(PACKET_END);
-    }
+void print_heartbeat_message() {
+    Log.Debug(P("%c{\"id\":\"%s\",\"height\":%l,\"ver\":%s,\"trip_ver\":%s,\"pir_ver\":%s}%c"), PACKET_START, UNIT_NAME,
+              lidar_tripwire.baseline_distance, SSL_TESTBED_VERSION, TRIPWIRE_VERSION, PIR_VERSION, PACKET_END);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -253,20 +174,21 @@ void start_pir() {
     // Set up input pins for PIR sensors
     narrow.set_trigger_state(HIGH);
     narrow.start();
+    narrow.set_event_start_callback(pir_event_start);
+    narrow.set_event_end_callback(pir_event_end);
+    narrow.set_cooldown_over_callback(pir_cooldown_end);
 
     wide_left.set_trigger_state(HIGH);
+    wide_left.set_event_start_callback(pir_event_start);
+    wide_left.set_event_end_callback(pir_event_end);
+    wide_left.set_cooldown_over_callback(pir_cooldown_end);
     wide_left.start();
 
     wide_right.set_trigger_state(HIGH);
+    wide_right.set_event_start_callback(pir_event_start);
+    wide_right.set_event_end_callback(pir_event_end);
+    wide_right.set_cooldown_over_callback(pir_cooldown_end);
     wide_right.start();
-
-    narrow.set_event_start_callback(narrow_event_start);
-    narrow.set_event_end_callback(narrow_event_end);
-
-    wide_left.set_event_start_callback(wide_event_start);
-    wide_right.set_event_start_callback(wide_event_start);
-    wide_left.set_cooldown_over_callback(wide_cooldown_finished);
-    wide_right.set_cooldown_over_callback(wide_cooldown_finished);
 
     Log.Info(P("Calibrating motion sensors..."));
     narrow.calibrate(MOTION_INITIALISATION_TIME);
@@ -278,117 +200,36 @@ void start_pir() {
     update_pir();
 }
 
-void narrow_event_start() {
+void pir_event_start(PIR sensor) {
     /**
     * Callback - Determine what traffic has caused the event based on timing
     */
-
-    Log.Debug("Narrow PIR event started");
-    if (pir_recording_event) {
-        // Calculte the speed if motion has been triggered from outside already
-        if (!pedestrian_timeout_active) {
-            float distance = wide_left.radius - narrow.radius;
-            unsigned long time = get_most_recent_wide_event() - narrow.detection_start_time;
-            float speed = distance / (time / 1000);  // m/s
-            speed *= 3.6;
-
-            if (speed > (2 * WALKING_SPEED)) {
-                data.pir_vehicle++;
-                data.pir_pedestrian--;
-
-            } else {
-                pedestrian_timeout_active = true;
-                unsigned long walking_timeout = (narrow.radius / (WALKING_SPEED / 3.6) * 1000);
-                timer.setTimeout(walking_timeout, cancel_pedestrian_timeout);
-            }
-        }
-    } else {
-        data.pir_error++;
-    }
-
-    trigger_traffic_event();
+    Log.Debug(P("%c{\"id\":\"%s\",\"type\":\"start\",\"count\":%l}%c"), PACKET_START, sensor.name,
+              sensor.num_detections, PACKET_END);
 }
 
-void cancel_pedestrian_timeout() {
-    /**
-    * Cancel the pedestrian timeout - stops the narrow sensor from overcounting
-    */
-    pedestrian_timeout_active = false;
-}
-
-unsigned long get_most_recent_wide_event() {
-    /**
-    * Get the time of the most recent detection from the wide sensors
-    */
-    unsigned long event_time = 0;
-
-    if (wide_left.detection_start_time > event_time) {
-        event_time = wide_left.last_untriggered_time;
-    }
-    if (wide_right.detection_start_time > event_time) {
-        event_time = wide_right.last_untriggered_time;
-    }
-
-    return event_time;
-}
-
-void narrow_event_end() {
+void pir_event_end(PIR sensor) {
     /**
     * Callback - trigger a traffic notification at the end of a narrow event (event, not detection)
     * The callback at the end makes sure the event width is recorded
     */
-    trigger_traffic_event();
+
+    Log.Info(P("%c{\"id\":\"%s\",\"type\":\"end\",\"count\":%l, \"time\":%l}%c"), PACKET_START, sensor.name,
+             sensor.num_detections, sensor.event_width, PACKET_END);
 }
 
-void wide_event_start() {
-    /**
-    * Callback - Start recording a timed event when the wide sensors are triggered
-    */
-
-    Log.Debug("Wide PIR event started");
-
-    if (pir_recording_event) {
-        pir_recording_event = false;
-        long time_between_wide_detections = (abs(wide_left.last_untriggered_time - wide_right.last_untriggered_time));
-
-        long maximum_vehicle_time = long(wide_left.radius * 1000) / float((2 * WALKING_SPEED) / 3.6);
-        if (time_between_wide_detections < maximum_vehicle_time) {
-            data.pir_vehicle++;
-        }
-    }
-
-    else {
-        pir_recording_event = true;
-        data.pir_pedestrian++;
-    }
-
-    trigger_traffic_event();
-}
-
-void wide_cooldown_finished() {
-    /**
-    * Callback - Stop recording events when the cooldown period is over
-    */
-    pir_recording_event = false;
+void pir_cooldown_end(PIR sensor) {
+    Log.Debug(P("%c{\"id\":\"%s\",\"type\":\"cool\",\"count\":%l}%c"), PACKET_START, sensor.name, sensor.num_detections,
+              PACKET_END);
 }
 
 void update_pir() {
     /**
     * Check the motion sensors and update detection data
     */
-    pir_clear = is_pir_clear();
-
     narrow.update();
     wide_left.update();
     wide_right.update();
-}
-
-bool is_pir_clear() {
-    /**
-    * Check if motion sensors are currently detecting events
-    * @return True if no events are currently in progress
-    */
-    return !(narrow.state && wide_left.state && wide_right.state);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -404,12 +245,15 @@ void start_lidar() {
     pinMode(LIDAR_PWM_PIN, INPUT);
     lidar.begin();
 
+    lidar_tripwire.cooldown_time = LIDAR_COOLDOWN;
     lidar_tripwire.distance_threshold = LIDAR_DETECT_THRESHOLD;
     lidar_tripwire.max_baseline_variance = BASELINE_VARIANCE_THRESHOLD;
     lidar_tripwire.min_successive_detections = MIN_SUCCESSIVE_LIDAR_READS;
     lidar_tripwire.min_baseline_reads = MIN_BASELINE_READS;
     lidar_tripwire.max_baseline_reads = MAX_BASELINE_READS;
     lidar_tripwire.baseline_read_interval = BASELINE_READ_INTERVAL;
+    lidar_tripwire.min_detect_distance = TRIPWIRE_MIN_DETECT_DISTANCE;
+    lidar_tripwire.max_detect_distance = TRIPWIRE_MAX_DETECT_DISTANCE;
 
     lidar_tripwire.start();
     Log.Debug(P("Lidar - Establishing baseline range..."));
@@ -418,7 +262,9 @@ void start_lidar() {
               lidar_tripwire.baseline_variance);
 
     if (lidar_tripwire.is_calibrated) {
-        lidar_tripwire.set_event_start_callback(narrow_event_start);
+        lidar_tripwire.set_event_start_callback(lidar_start_event);
+        lidar_tripwire.set_event_end_callback(lidar_end_event);
+        lidar_tripwire.set_cooldown_over_callback(lidar_cooldown_event);
         timer.setInterval(LIDAR_CHECK_RANGE_INTERVAL, update_lidar);
     }
 
@@ -437,6 +283,22 @@ long get_lidar_range() {
 
 void update_lidar() { lidar_tripwire.update(); }
 
+void lidar_start_event() {
+    Log.Debug(P("%c{\"id\":\"lidar\",\"type\":\"start\",\"count\":%l, \"distance\":%l}%c"), PACKET_START,
+              lidar_tripwire.num_detections, lidar_tripwire.distance, PACKET_END);
+}
+
+void lidar_end_event() {
+    Log.Info(P("%c{\"id\":\"lidar\",\"type\":\"end\",\"count\":%l, \"distance\":%l, \"time\":%l, "
+               "\"height\":%l, \"reads\":%d}%c"),
+             PACKET_START, lidar_tripwire.num_detections, lidar_tripwire.distance, lidar_tripwire.last_event_width,
+             lidar_tripwire.average_target_height, lidar_tripwire.active_event_reads, PACKET_END);
+}
+
+void lidar_cooldown_event() {
+    Log.Debug(P("%c{\"id\":\"lidar\",\"type\":\"cool\",\"count\":%l, \"distance\":%l}%c"), PACKET_START,
+              lidar_tripwire.num_detections, lidar_tripwire.distance, PACKET_END);
+}
 ////////////////////////////////////////////////////////////////////////////////
 /* RTC */
 
